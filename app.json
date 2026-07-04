@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "mms-techy8-mobile",
-    "slug": "mms-techy8-mobile",
+    "name": "Nane Mobile",
+    "slug": "nane-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "mmstechy8mobile",
+    "icon": "./assets/images/nane-logo.png",
+    "scheme": "nane",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -28,11 +28,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
+          "backgroundColor": "#1E3A8A",
+          "image": "./assets/images/nane-logo.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
