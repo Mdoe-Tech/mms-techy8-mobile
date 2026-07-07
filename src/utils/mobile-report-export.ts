@@ -71,6 +71,8 @@ type AndroidReportDownloadsModule = {
 };
 
 const AndroidReportDownloads = NativeModules.NaneReportDownloads as AndroidReportDownloadsModule | undefined;
+const A4_LANDSCAPE_WIDTH_PT = 842;
+const A4_LANDSCAPE_HEIGHT_PT = 595;
 
 export async function exportMobileReport<T>(
   options: MobileReportExportOptions<T>,
@@ -103,8 +105,8 @@ async function createPdfReport<T>(options: MobileReportExportOptions<T>): Promis
   const html = buildReportHtml(options);
   const result = await Print.printToFileAsync({
     html,
-    width: 1191,
-    height: 842,
+    width: A4_LANDSCAPE_WIDTH_PT,
+    height: A4_LANDSCAPE_HEIGHT_PT,
     base64: false,
     textZoom: 100,
   });
@@ -234,6 +236,14 @@ function buildReportHtml<T>({
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date());
+  const columnWidths = normalizedColumnWidths(columns);
+  const columnCount = Math.max(1, columns.length);
+  const compactTable = columnCount > 8;
+  const denseTable = columnCount > 10;
+  const tableFontSize = denseTable ? 7.8 : compactTable ? 8.4 : 9.2;
+  const headerFontSize = denseTable ? 7.2 : compactTable ? 7.8 : 8.4;
+  const cellPadding = denseTable ? '4pt 3pt' : compactTable ? '5pt 4pt' : '6pt 5pt';
+  const headerPadding = denseTable ? '5pt 3pt' : compactTable ? '6pt 4pt' : '7pt 5pt';
   const metaItems: MobileReportMeta[] = [
     { label: 'Generated', value: generatedAt },
     { label: 'Records', value: rows.length },
@@ -245,76 +255,91 @@ function buildReportHtml<T>({
 <head>
   <meta charset="utf-8" />
   <style>
-    @page { size: A4 landscape; margin: 18mm 14mm; }
+    @page { size: 297mm 210mm; margin: 8mm; }
     * { box-sizing: border-box; }
+    html {
+      width: 100%;
+      min-width: 0;
+      background: #ffffff;
+    }
     body {
       margin: 0;
       color: #111827;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-      font-size: 11px;
-      line-height: 1.45;
+      font-size: 9.8pt;
+      line-height: 1.35;
       background: #ffffff;
+      width: 100%;
+      min-width: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
-    .report-shell { width: 100%; }
+    .report-shell {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
     .topbar {
       display: flex;
       justify-content: space-between;
-      gap: 24px;
-      padding-bottom: 14px;
-      border-bottom: 2px solid #111827;
-      margin-bottom: 16px;
+      gap: 16pt;
+      padding-bottom: 9pt;
+      border-bottom: 1.5pt solid #111827;
+      margin-bottom: 10pt;
     }
     .brand {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
+      gap: 7pt;
+      margin-bottom: 5pt;
       color: #2563eb;
       font-weight: 800;
-      letter-spacing: .04em;
+      letter-spacing: .03em;
       text-transform: uppercase;
     }
     .brand-mark {
-      width: 24px;
-      height: 24px;
-      border-radius: 8px;
+      width: 19pt;
+      height: 19pt;
+      border-radius: 6pt;
       background: #2563eb;
       color: #ffffff;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 10pt;
     }
     h1 {
       margin: 0;
-      font-size: 25px;
+      font-size: 18pt;
       line-height: 1.15;
       letter-spacing: 0;
       color: #0f172a;
     }
     .association {
-      margin-top: 5px;
+      margin-top: 3pt;
       color: #334155;
-      font-size: 12px;
+      font-size: 9.5pt;
       font-weight: 700;
     }
     .purpose {
-      margin-top: 8px;
-      max-width: 620px;
+      margin-top: 5pt;
+      max-width: 520pt;
       color: #475569;
-      font-size: 11px;
+      font-size: 8.6pt;
     }
     .meta-grid {
-      min-width: 240px;
+      width: 190pt;
+      flex: 0 0 190pt;
       display: grid;
-      gap: 6px;
+      gap: 3pt;
       align-content: start;
     }
     .meta-row {
       display: flex;
       justify-content: space-between;
-      gap: 16px;
-      padding: 5px 0;
+      gap: 9pt;
+      padding: 3pt 0;
       border-bottom: 1px solid #e5e7eb;
     }
     .meta-row span:first-child { color: #64748b; }
@@ -326,100 +351,113 @@ function buildReportHtml<T>({
     .metrics {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
+      gap: 7pt;
+      margin-bottom: 9pt;
     }
     .metric {
       border: 1px solid #d1d5db;
-      border-radius: 12px;
-      padding: 10px 12px;
+      border-radius: 8pt;
+      padding: 7pt 8pt;
       background: #ffffff;
     }
     .metric-label {
       color: #64748b;
-      font-size: 9px;
+      font-size: 7pt;
       text-transform: uppercase;
       letter-spacing: .08em;
       font-weight: 800;
     }
     .metric-value {
-      margin-top: 4px;
+      margin-top: 3pt;
       color: #111827;
-      font-size: 17px;
+      font-size: 12.5pt;
       font-weight: 850;
     }
     .metric-helper {
-      margin-top: 2px;
+      margin-top: 2pt;
       color: #475569;
-      font-size: 9px;
+      font-size: 7.2pt;
     }
     .filters {
       display: flex;
       flex-wrap: wrap;
-      gap: 7px;
-      margin-bottom: 14px;
+      gap: 5pt;
+      margin-bottom: 9pt;
     }
     .filter-pill {
       border: 1px solid #cbd5e1;
       border-radius: 999px;
-      padding: 5px 9px;
+      padding: 3.5pt 6pt;
       color: #334155;
       background: #ffffff;
-      font-size: 9px;
+      font-size: 7.4pt;
       font-weight: 700;
+    }
+    .table-wrap {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: visible;
+      break-inside: auto;
     }
     table {
       width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
+      max-width: 100%;
+      border-collapse: collapse;
       table-layout: fixed;
-      border: 1px solid #d1d5db;
-      border-radius: 12px;
-      overflow: hidden;
+      border: 1px solid #94a3b8;
+      font-size: ${tableFontSize}pt;
+      line-height: 1.28;
+      page-break-inside: auto;
     }
     thead { display: table-header-group; }
+    tbody { display: table-row-group; }
+    tr {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
     th {
       background: #0f172a;
       color: #ffffff;
       text-align: left;
-      padding: 8px 7px;
-      font-size: 9px;
+      padding: ${headerPadding};
+      font-size: ${headerFontSize}pt;
       text-transform: uppercase;
-      letter-spacing: .05em;
+      letter-spacing: .035em;
       font-weight: 800;
-      border-right: 1px solid rgba(255,255,255,.18);
+      border: 1px solid #0f172a;
+      overflow-wrap: anywhere;
+      word-break: normal;
     }
-    th:last-child { border-right: 0; }
     td {
-      padding: 7px;
+      padding: ${cellPadding};
       vertical-align: top;
-      border-top: 1px solid #e5e7eb;
-      border-right: 1px solid #eef2f7;
+      border: 1px solid #dbe3ee;
       color: #1f2937;
       overflow-wrap: anywhere;
+      word-break: normal;
     }
-    td:last-child { border-right: 0; }
     tbody tr:nth-child(even) td { background: #f8fafc; }
     .align-center { text-align: center; }
     .align-right { text-align: right; }
     .empty {
-      padding: 22px;
+      padding: 18pt;
       border: 1px dashed #cbd5e1;
-      border-radius: 12px;
+      border-radius: 8pt;
       color: #475569;
       background: #f8fafc;
       text-align: center;
       font-weight: 700;
     }
     .footer {
-      margin-top: 14px;
-      padding-top: 8px;
+      margin-top: 9pt;
+      padding-top: 6pt;
       border-top: 1px solid #e5e7eb;
       color: #64748b;
-      font-size: 9px;
+      font-size: 7.4pt;
       display: flex;
       justify-content: space-between;
-      gap: 16px;
+      gap: 12pt;
     }
   </style>
 </head>
@@ -441,10 +479,11 @@ function buildReportHtml<T>({
     ${filters.length ? `<section class="filters">${filters.map((item) => `<span class="filter-pill">${escapeHtml(item.label)}: ${escapeHtml(formatReportValue(item.value))}</span>`).join('')}</section>` : ''}
     ${
       rows.length
-        ? `<table>
+        ? `<section class="table-wrap"><table>
+      <colgroup>${columnWidths.map((width) => `<col style="width:${width}" />`).join('')}</colgroup>
       <thead><tr>${columns.map(renderHeader).join('')}</tr></thead>
       <tbody>${rows.map((row, index) => renderRow(row, index, columns)).join('')}</tbody>
-    </table>`
+    </table></section>`
         : `<div class="empty">${escapeHtml(emptyMessage)}</div>`
     }
     <section class="footer">
@@ -466,8 +505,7 @@ function renderMetric(metric: MobileReportMetric) {
 
 function renderHeader<T>(column: MobileReportColumn<T>) {
   const alignClass = column.align ? ` align-${column.align}` : '';
-  const width = column.width ? ` style="width:${escapeHtml(column.width)}"` : '';
-  return `<th class="${alignClass.trim()}"${width}>${escapeHtml(column.label)}</th>`;
+  return `<th class="${alignClass.trim()}">${escapeHtml(column.label)}</th>`;
 }
 
 function renderRow<T>(row: T, index: number, columns: MobileReportColumn<T>[]) {
@@ -477,6 +515,27 @@ function renderRow<T>(row: T, index: number, columns: MobileReportColumn<T>[]) {
       return `<td class="${alignClass.trim()}">${escapeHtml(formatReportValue(reportCellValue(row, index, column)))}</td>`;
     })
     .join('')}</tr>`;
+}
+
+function normalizedColumnWidths<T>(columns: MobileReportColumn<T>[]) {
+  if (!columns.length) return ['100%'];
+
+  const fallbackWidth = 100 / columns.length;
+  const baseWidths = columns.map((column) => parsePercentWidth(column.width) ?? fallbackWidth);
+  const total = baseWidths.reduce((sum, width) => sum + width, 0);
+  if (!Number.isFinite(total) || total <= 0) {
+    return columns.map(() => `${fallbackWidth.toFixed(4)}%`);
+  }
+
+  return baseWidths.map((width) => `${((width / total) * 100).toFixed(4)}%`);
+}
+
+function parsePercentWidth(width?: string) {
+  if (!width) return null;
+  const trimmed = width.trim();
+  if (!trimmed.endsWith('%')) return null;
+  const value = Number.parseFloat(trimmed.slice(0, -1));
+  return Number.isFinite(value) && value > 0 ? value : null;
 }
 
 function buildReportCsv<T>(options: MobileReportExportOptions<T>) {
