@@ -1,10 +1,10 @@
 import { ChevronDown } from 'lucide-react-native';
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useNaneTheme } from '@/theme/tokens';
 import { MobileSheet } from './MobileSheet';
 import { MobileText } from './MobileText';
-import { useState } from 'react';
 
 type MobileSelectOption = {
   label: string;
@@ -17,9 +17,12 @@ type MobileSelectProps = {
   options: MobileSelectOption[];
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
+  helperText?: string;
+  error?: string;
 };
 
-export function MobileSelect({ label, value, options, onChange, placeholder = 'Select option' }: MobileSelectProps) {
+export function MobileSelect({ label, value, options, onChange, placeholder = 'Select option', disabled, helperText, error }: MobileSelectProps) {
   const [open, setOpen] = useState(false);
   const theme = useNaneTheme();
   const selected = options.find((option) => option.value === value);
@@ -30,10 +33,15 @@ export function MobileSelect({ label, value, options, onChange, placeholder = 'S
         {label}
       </MobileText>
       <Pressable
+        disabled={disabled}
         onPress={() => setOpen(true)}
         style={({ pressed }) => [
           styles.trigger,
-          { borderColor: theme.colors.border, backgroundColor: theme.colors.input, opacity: pressed ? 0.82 : 1 },
+          {
+            borderColor: error ? theme.colors.status.danger : theme.colors.border,
+            backgroundColor: disabled ? theme.colors.disabled : theme.colors.input,
+            opacity: disabled ? 0.62 : pressed ? 0.82 : 1,
+          },
         ]}
       >
         <MobileText variant="body" weight="semibold" tone={selected ? 'primary' : 'muted'} style={styles.triggerText} numberOfLines={1}>
@@ -41,6 +49,11 @@ export function MobileSelect({ label, value, options, onChange, placeholder = 'S
         </MobileText>
         <ChevronDown color={theme.colors.textMuted} size={18} />
       </Pressable>
+      {error || helperText ? (
+        <MobileText variant="tiny" style={{ color: error ? theme.colors.status.danger : theme.colors.textMuted }}>
+          {error || helperText}
+        </MobileText>
+      ) : null}
       <MobileSheet visible={open} title={label} onClose={() => setOpen(false)}>
         <View style={styles.options}>
           {options.map((option) => {
@@ -100,4 +113,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
 });
-

@@ -1,10 +1,7 @@
-import { RequireAuth } from '@/auth/RequireAuth';
-import ModuleRoutesScreen from '@/screens/ModuleRoutesScreen';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
-export default function ModuleScreen() {
-  return (
-    <RequireAuth>
-      <ModuleRoutesScreen />
-    </RequireAuth>
-  );
+export default function LegacyModuleRedirect() {
+  const params = useLocalSearchParams();
+
+  return <Redirect href={{ pathname: '/work/module', params } as never} />;
 }

@@ -45,6 +45,7 @@ function createApiError(response: Response, parsed: unknown) {
     code: payload?.error?.code,
     detail,
     path: payload?.error?.path,
+    traceId: payload?.traceId,
     response: parsed,
   });
 }
@@ -105,6 +106,11 @@ export async function refreshAccessToken() {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const payload = await apiEnvelopeRequest<T>(path, options);
+  return payload.data;
+}
+
+export async function apiEnvelopeRequest<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
   const headers = await buildHeaders(options);
   const response = await fetch(buildUrl(path), {
     ...options,
@@ -116,7 +122,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (response.status === 401 && options.auth !== false && options.retryOnUnauthorized !== false) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
-      return apiRequest<T>(path, { ...options, retryOnUnauthorized: false });
+      return apiEnvelopeRequest<T>(path, { ...options, retryOnUnauthorized: false });
     }
     await sessionExpiredHandler?.();
   }
@@ -133,11 +139,43 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
         code: payload.error?.code,
         detail: payload.error?.detail,
         path: payload.error?.path,
+        traceId: payload.traceId,
         response: payload,
       });
     }
-    return payload.data;
+    return payload;
   }
 
-  return parsed as T;
+  return {
+    success: true,
+    message: 'Operation completed successfully',
+    data: parsed as T,
+  };
+}
+
+export async function apiBinaryRequest(path: string, options: RequestOptions = {}) {
+  const headers = await buildHeaders(options);
+  const response = await fetch(buildUrl(path), {
+    ...options,
+    headers,
+    body: options.body instanceof FormData ? options.body : options.body === undefined ? undefined : JSON.stringify(options.body),
+  });
+
+  if (response.status === 401 && options.auth !== false && options.retryOnUnauthorized !== false) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return apiBinaryRequest(path, { ...options, retryOnUnauthorized: false });
+    }
+    await sessionExpiredHandler?.();
+  }
+
+  if (!response.ok) {
+    const parsed = await parseResponse(response);
+    throw createApiError(response, parsed);
+  }
+
+  return {
+    data: await response.arrayBuffer(),
+    headers: response.headers,
+  };
 }

@@ -2,44 +2,47 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { useAuth } from '@/auth/auth-context';
 import {
   MobileButton,
   MobileCard,
   MobileDataList,
   MobileEmptyState,
-  MobileKpiCard,
-  MobileKpiGrid,
-  MobileKpiGridItem,
   MobilePageHeader,
+  MobilePageLoadingState,
   MobileScreen,
-  MobileStatusBadge,
   MobileText,
 } from '@/components/mobile';
 import {
+  getAccessibleRoutesForModule,
+  isMobileAccessLoading,
+} from '@/navigation/mobile-access';
+import {
   coerceMobileModule,
   coerceMobileRole,
-  getRoutesForModule,
-  getRouteStatus,
   moduleCatalog,
   roleForMobileView,
   roleLabels,
   type MobileRouteItem,
 } from '@/navigation/route-registry';
+import { useMobileAccess } from '@/navigation/use-mobile-access';
 import { useNaneTheme } from '@/theme/tokens';
 
 export default function ModuleRoutesScreen() {
   const params = useLocalSearchParams();
-  const { activeView } = useAuth();
+  const access = useMobileAccess();
   const rawRole = Array.isArray(params.role) ? params.role[0] : params.role;
-  const role = rawRole ? coerceMobileRole(rawRole) : roleForMobileView(activeView);
+  const role = rawRole ? coerceMobileRole(rawRole) : roleForMobileView(access.activeView);
   const module = coerceMobileModule(params.module);
   const meta = moduleCatalog[module];
-  const routes = useMemo(() => getRoutesForModule(role, module), [module, role]);
-  const dynamicRoutes = useMemo(() => routes.filter((route) => route.dynamic), [routes]);
-  const primaryRoutes = useMemo(() => routes.filter((route) => route.primary), [routes]);
+  const routes = useMemo(() => getAccessibleRoutesForModule(role, module, access), [access, module, role]);
+  const actionRoutes = useMemo(() => routes.filter((route) => !route.dynamic), [routes]);
+  const primaryRoutes = useMemo(() => actionRoutes.filter((route) => route.primary), [actionRoutes]);
   const Icon = meta.icon;
   const theme = useNaneTheme();
+
+  if (isMobileAccessLoading(access)) {
+    return <MobilePageLoadingState kind="list" message="Checking your access" />;
+  }
 
   return (
     <MobileScreen>
@@ -48,7 +51,6 @@ export default function ModuleRoutesScreen() {
         eyebrow={roleLabels[role].short}
         subtitle={meta.description}
         onBack={() => router.back()}
-        rightAction={<MobileStatusBadge status="Routes" label={`${routes.length}`} tone="primary" />}
       />
 
       <MobileCard compact accent={meta.tone}>
@@ -61,50 +63,40 @@ export default function ModuleRoutesScreen() {
               {meta.label}
             </MobileText>
             <MobileText variant="small" tone="secondary">
-              {routes.length} tracked web routes are grouped here for native migration planning.
+              Choose what you want to do here. Member-specific work opens from the member record.
             </MobileText>
           </View>
         </View>
       </MobileCard>
 
-      <MobileKpiGrid>
-        <MobileKpiGridItem>
-          <MobileKpiCard title="Routes" value={`${routes.length}`} description="In this module" tone={meta.tone} icon={meta.icon} />
-        </MobileKpiGridItem>
-        <MobileKpiGridItem>
-          <MobileKpiCard title="Primary" value={`${primaryRoutes.length}`} description="High-frequency work" tone="blue" icon={meta.icon} />
-        </MobileKpiGridItem>
-        <MobileKpiGridItem>
-          <MobileKpiCard title="Dynamic" value={`${dynamicRoutes.length}`} description="Needs record context" tone="purple" icon={meta.icon} />
-        </MobileKpiGridItem>
-      </MobileKpiGrid>
-
       <View style={styles.resultHeader}>
-        <MobileText variant="section" weight="bold">
-          Route inventory
-        </MobileText>
+        <View style={styles.resultCopy}>
+          <MobileText variant="section" weight="bold">
+            What you can do
+          </MobileText>
+          <MobileText variant="small" tone="secondary">
+            {primaryRoutes.length > 0 ? 'Most-used tasks appear first.' : 'Pick a task to continue.'}
+          </MobileText>
+        </View>
         <MobileButton label="Search" variant="secondary" size="sm" onPress={() => router.push('/search' as never)} />
       </View>
 
-      {routes.length > 0 ? (
-        <MobileDataList items={routes.map(routeToListItem)} onPressItem={(item) => router.push({ pathname: '/route-preview', params: { routeId: item.id } } as never)} />
+      {actionRoutes.length > 0 ? (
+        <MobileDataList items={actionRoutes.map(routeToListItem)} onPressItem={(item) => router.push({ pathname: '/work/route-preview', params: { routeId: item.id } } as never)} />
       ) : (
-        <MobileEmptyState title="No routes in this module" description="This role does not currently expose pages in this module." />
+        <MobileEmptyState title="Nothing to show here yet" description="There are no mobile tasks in this area for your current access." />
       )}
     </MobileScreen>
   );
 }
 
 function routeToListItem(route: MobileRouteItem) {
-  const status = getRouteStatus(route);
   return {
     id: route.id,
     title: route.title,
-    subtitle: route.path,
-    meta: `${route.primary ? 'Primary' : 'Secondary'} · ${route.dynamic ? 'Dynamic path' : 'Static path'}`,
-    status: status.label,
-    statusTone: status.tone,
-    accent: status.tone,
+    subtitle: route.description,
+    meta: moduleCatalog[route.module].label,
+    accent: route.primary ? ('primary' as const) : ('neutral' as const),
   };
 }
 
@@ -131,5 +123,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  resultCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
   },
 });

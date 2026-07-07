@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 
@@ -36,7 +36,9 @@ export function MobileSheet({ visible, title, description, children, onClose }: 
             </View>
             <MobileIconButton icon={X} label="Close" variant="ghost" onPress={onClose} />
           </View>
-          {children}
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
+            {children}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -52,6 +54,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
   },
   sheet: {
+    maxHeight: '88%',
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     borderWidth: 1,
@@ -73,5 +76,9 @@ const styles = StyleSheet.create({
   titleBlock: {
     flex: 1,
     minWidth: 0,
+  },
+  body: {
+    gap: 16,
+    paddingBottom: 6,
   },
 });

@@ -1,28 +1,27 @@
 import { router } from 'expo-router';
-import { ArrowRight, Compass, Layers3, Route, Sparkles } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { ArrowRight, BriefcaseBusiness, Search } from 'lucide-react-native';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { useAuth } from '@/auth/auth-context';
 import {
   MobileButton,
   MobileCard,
   MobileDataList,
-  MobileKpiCard,
-  MobileKpiGrid,
-  MobileKpiGridItem,
+  MobileEmptyState,
   MobilePageHeader,
+  MobilePageLoadingState,
   MobileScreen,
   MobileStatusBadge,
-  MobileStatusTabs,
   MobileText,
 } from '@/components/mobile';
 import {
-  getModuleSummariesForRole,
-  getRouteStatus,
-  getRoutesForRole,
-  mobileRouteInventoryCounts,
-  mobileRoles,
+  getAccessibleModuleSummariesForRole,
+  getAccessibleRoutesForModule,
+  getAccessibleRoutesForRole,
+  isMobileAccessLoading,
+  type MobileRouteAccessState,
+} from '@/navigation/mobile-access';
+import {
   moduleCatalog,
   roleForMobileView,
   roleLabels,
@@ -30,39 +29,34 @@ import {
   type MobileRole,
   type MobileRouteItem,
 } from '@/navigation/route-registry';
+import { useMobileAccess } from '@/navigation/use-mobile-access';
 import { useNaneTheme } from '@/theme/tokens';
 
 export default function WorkHubScreen() {
-  const { activeView } = useAuth();
-  const defaultRole = roleForMobileView(activeView);
-  const [selectedRole, setSelectedRole] = useState<MobileRole | null>(null);
-  const role = selectedRole || defaultRole;
-  const routes = useMemo(() => getRoutesForRole(role), [role]);
-  const modules = useMemo(() => getModuleSummariesForRole(role), [role]);
-  const primaryRoutes = useMemo(() => routes.filter((route) => route.primary).slice(0, 6), [routes]);
-  const dynamicCount = useMemo(() => routes.filter((route) => route.dynamic).length, [routes]);
+  const access = useMobileAccess();
+  const role = roleForMobileView(access.activeView);
+  const routes = useMemo(() => getAccessibleRoutesForRole(role, access), [access, role]);
+  const modules = useMemo(() => getAccessibleModuleSummariesForRole(role, access), [access, role]);
+  const primaryRoutes = useMemo(() => routes.filter((route) => route.primary && !route.dynamic).slice(0, 6), [routes]);
+
+  if (isMobileAccessLoading(access)) {
+    return <MobilePageLoadingState kind="list" message="Checking your access" />;
+  }
 
   return (
     <MobileScreen>
       <MobilePageHeader
         showLogo
-        eyebrow="Mobile navigation"
-        title="Work Hub"
-        subtitle="Role-aware route map before native page migration."
-      />
-
-      <MobileStatusTabs
-        tabs={mobileRoles.map((item) => ({
-          value: item,
-          label: roleLabels[item].short,
-          count: getRoutesForRole(item).length,
-        }))}
-        value={role}
-        onChange={(nextRole) => setSelectedRole(nextRole as MobileRole)}
+        eyebrow="Workspace"
+        title="Work"
+        subtitle="Choose where you want to work next."
       />
 
       <MobileCard compact accent="blue">
         <View style={styles.heroHeader}>
+          <View style={styles.heroIcon}>
+            <BriefcaseBusiness color="#FFFFFF" size={22} strokeWidth={2.4} />
+          </View>
           <View style={styles.heroCopy}>
             <MobileText variant="section" weight="bold">
               {roleLabels[role].label}
@@ -71,62 +65,62 @@ export default function WorkHubScreen() {
               {roleLabels[role].description}
             </MobileText>
           </View>
-          <MobileStatusBadge status="Tracked" label={`${routes.length} routes`} tone="primary" />
+          <MobileStatusBadge status="Active" label="Current" tone="success" />
         </View>
       </MobileCard>
 
-      <MobileKpiGrid>
-        <MobileKpiGridItem>
-          <MobileKpiCard title="Protected routes" value={`${routes.length}`} description="From frontend route tree" icon={Route} tone="blue" />
-        </MobileKpiGridItem>
-        <MobileKpiGridItem>
-          <MobileKpiCard title="Modules" value={`${modules.length}`} description="Grouped for mobile" icon={Layers3} tone="green" />
-        </MobileKpiGridItem>
-        <MobileKpiGridItem>
-          <MobileKpiCard title="Dynamic paths" value={`${dynamicCount}`} description="Need record context" icon={Compass} tone="purple" />
-        </MobileKpiGridItem>
-        <MobileKpiGridItem>
-          <MobileKpiCard title="Inventory" value={`${mobileRouteInventoryCounts.total}`} description="All roles combined" icon={Sparkles} tone="teal" />
-        </MobileKpiGridItem>
-      </MobileKpiGrid>
+      <SectionHeader title="Work areas" subtitle="Start with the area you want to manage." />
+      {modules.length > 0 ? (
+        <View style={styles.moduleGrid}>
+          {modules.map((module) => (
+            <ModuleCard key={module.id} module={module} role={role} access={access} />
+          ))}
+        </View>
+      ) : (
+        <MobileEmptyState
+          title="No work areas available"
+          description="Your current role or association plan does not include mobile work areas yet."
+        />
+      )}
 
-      <SectionHeader title="Modules" subtitle="Open a module to see every route inside it." />
-      <View style={styles.moduleGrid}>
-        {modules.map((module) => (
-          <ModuleCard key={module.id} module={module} role={role} />
-        ))}
-      </View>
-
-      <SectionHeader title="Primary work" subtitle="High-frequency routes that should migrate early." />
+      <SectionHeader title="Quick actions" subtitle="Start the tasks people use most often." />
       {primaryRoutes.length > 0 ? (
-        <MobileDataList items={primaryRoutes.map(routeToListItem)} onPressItem={(item) => router.push({ pathname: '/route-preview', params: { routeId: item.id } } as never)} />
+        <MobileDataList items={primaryRoutes.map(routeToListItem)} onPressItem={(item) => router.push({ pathname: '/work/route-preview', params: { routeId: item.id } } as never)} />
       ) : null}
 
       <MobileCard compact>
         <View style={styles.ctaRow}>
           <View style={styles.heroCopy}>
             <MobileText variant="section" weight="bold">
-              Find any route
+              Find a task
             </MobileText>
             <MobileText variant="small" tone="secondary">
-              Search across association, member, and system admin routes.
+              Search members, payments, loans, reports, wallet work, SMS, or settings.
             </MobileText>
           </View>
-          <MobileButton label="Search" size="sm" icon={ArrowRight} onPress={() => router.push('/search' as never)} />
+          <MobileButton label="Search" size="sm" icon={Search} onPress={() => router.push('/search' as never)} />
         </View>
       </MobileCard>
     </MobileScreen>
   );
 }
 
-function ModuleCard({ module, role }: { module: MobileModuleSummary; role: MobileRole }) {
+function ModuleCard({ module, role, access }: { module: MobileModuleSummary; role: MobileRole; access: MobileRouteAccessState }) {
   const theme = useNaneTheme();
   const Icon = module.icon;
   const accent = theme.colors.kpi[module.tone];
+  const moduleRoutes = getAccessibleRoutesForModule(role, module.id, access);
+  const previewActions = moduleRoutes
+    .filter((route) => route.primary && !route.dynamic)
+    .concat(moduleRoutes)
+    .filter((route) => !route.dynamic)
+    .filter((route, index, all) => all.findIndex((item) => item.id === route.id) === index)
+    .slice(0, 2)
+    .map((route) => route.title);
 
   return (
     <Pressable
-      onPress={() => router.push({ pathname: '/module', params: { module: module.id, role } } as never)}
+      onPress={() => router.push({ pathname: '/work/module', params: { module: module.id, role } } as never)}
       style={({ pressed }) => [styles.modulePressable, { opacity: pressed ? 0.84 : 1 }]}
     >
       <MobileCard compact accent={module.tone} style={styles.moduleCard}>
@@ -138,19 +132,16 @@ function ModuleCard({ module, role }: { module: MobileModuleSummary; role: Mobil
             <MobileText variant="body" weight="bold" numberOfLines={1} style={styles.moduleTitle}>
               {module.label}
             </MobileText>
-            <MobileStatusBadge status="Count" label={`${module.routeCount}`} tone="neutral" showDot={false} />
+            <ArrowRight color={theme.colors.textMuted} size={18} />
           </View>
           <MobileText variant="small" tone="secondary" numberOfLines={2}>
             {module.description}
           </MobileText>
-          <View style={styles.moduleMeta}>
-            <MobileText variant="tiny" tone="secondary" weight="bold">
-              {module.primaryCount} primary
+          {previewActions.length > 0 ? (
+            <MobileText variant="tiny" tone="secondary" weight="bold" numberOfLines={1}>
+              {previewActions.join(' • ')}
             </MobileText>
-            <MobileText variant="tiny" tone="secondary" weight="bold">
-              {module.dynamicCount} dynamic
-            </MobileText>
-          </View>
+          ) : null}
         </View>
       </MobileCard>
     </Pressable>
@@ -171,16 +162,12 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle: string })
 }
 
 function routeToListItem(route: MobileRouteItem) {
-  const status = getRouteStatus(route);
-
   return {
     id: route.id,
     title: route.title,
-    subtitle: route.path,
-    meta: `${roleLabels[route.role].short} · ${moduleCatalog[route.module].label}`,
-    status: status.label,
-    statusTone: status.tone,
-    accent: status.tone,
+    subtitle: route.description,
+    meta: moduleCatalog[route.module].label,
+    accent: 'primary' as const,
   };
 }
 
@@ -190,6 +177,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  heroIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
   },
   heroCopy: {
     flex: 1,

@@ -8,7 +8,7 @@ type MobileLoadingStateProps = {
   compact?: boolean;
 };
 
-export function MobileLoadingState({ message = 'Preparing Nane workspace', compact }: MobileLoadingStateProps) {
+export function MobileLoadingState({ message = 'Preparing your workspace', compact }: MobileLoadingStateProps) {
   return (
     <View style={[styles.wrap, compact ? styles.compact : null]}>
       <MobileSpinner message={message} size={compact ? 'md' : 'lg'} />

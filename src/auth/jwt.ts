@@ -1,6 +1,12 @@
 import type { AuthUser, JwtPayload } from '@/types/auth';
 
-const ASSOCIATION_ADMIN_ROLES = new Set(['ADMIN', 'SECRETARY', 'CHAIRPERSON', 'VICE_CHAIRPERSON', 'TREASURER']);
+const ASSOCIATION_ADMIN_ROLES = new Set([
+  'ADMIN',
+  'SECRETARY',
+  'CHAIRPERSON',
+  'VICE_CHAIRPERSON',
+  'TREASURER',
+]);
 
 function decodeBase64(input: string) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
@@ -61,6 +67,16 @@ function normalizePermission(permission?: string | null) {
   return String(permission || '').trim().toLowerCase();
 }
 
+function isAssociationSurfacePermission(permission?: string | null) {
+  const normalized = normalizePermission(permission);
+  return (
+    Boolean(normalized) &&
+    normalized.includes('.') &&
+    !normalized.startsWith('member.self.') &&
+    !['members.lookup', 'community.view', 'governance.view', 'subscriptions.view'].includes(normalized)
+  );
+}
+
 function roleListIncludes(user: Pick<AuthUser, 'roles'> | JwtPayload | null | undefined, role: string) {
   const expected = normalizeRole(role);
   return Array.isArray(user?.roles) && user.roles.some((value) => normalizeRole(value) === expected);
@@ -68,16 +84,8 @@ function roleListIncludes(user: Pick<AuthUser, 'roles'> | JwtPayload | null | un
 
 function hasAssociationSurfacePermission(user: Pick<AuthUser, 'permissions' | 'roles'> | JwtPayload | null | undefined) {
   return (
-    (Array.isArray(user?.permissions) &&
-      user.permissions.some((permission) => {
-        const normalized = normalizePermission(permission);
-        return (
-          normalized.includes('.') &&
-          !normalized.startsWith('member.self.') &&
-          !['members.lookup', 'community.view', 'governance.view', 'subscriptions.view'].includes(normalized)
-        );
-      })) ||
-    (Array.isArray(user?.roles) && user.roles.some((role) => normalizePermission(role).includes('.')))
+    (Array.isArray(user?.permissions) && user.permissions.some(isAssociationSurfacePermission)) ||
+    (Array.isArray(user?.roles) && user.roles.some(isAssociationSurfacePermission))
   );
 }
 
@@ -115,6 +123,16 @@ export function hasMemberAccess(
   return Array.isArray(user.permissions) && user.permissions.some((permission) => normalizePermission(permission).startsWith('member.self.'));
 }
 
+export function canChooseAssociationMode(
+  user:
+    | Pick<AuthUser, 'associationId' | 'schema' | 'isTechy8Admin' | 'systemRole' | 'associationRole' | 'roles' | 'permissions' | 'impersonatedBy'>
+    | JwtPayload
+    | null
+    | undefined,
+) {
+  return hasAssociationAdminAccess(user) && hasMemberAccess(user);
+}
+
 export function decodeAuthUser(token: string): AuthUser | null {
   const payload = parseJwtPayload(token);
   if (!payload || isExpiredPayload(payload)) return null;
@@ -147,4 +165,3 @@ export function deriveViewFromUser(user: AuthUser | null): 'SYSTEM_ADMIN' | 'ADM
   if (hasMemberAccess(user)) return 'MEMBER';
   return null;
 }
-

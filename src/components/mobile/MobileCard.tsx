@@ -34,10 +34,9 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 18,
-    shadowOpacity: 0.07,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
+    shadowOpacity: 0.025,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 0,
   },
 });
-

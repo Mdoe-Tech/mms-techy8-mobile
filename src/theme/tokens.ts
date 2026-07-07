@@ -1,4 +1,4 @@
-import { useColorScheme } from 'react-native';
+import { useNaneThemePreference } from '@/theme/theme-preference';
 
 export type NaneColorScheme = 'light' | 'dark';
 
@@ -129,13 +129,13 @@ export const naneThemes = {
         paid: '#0D9488',
       },
       kpi: {
-        blue: '#60A5FA',
-        green: '#22C55E',
-        teal: '#14B8A6',
-        orange: '#F97316',
-        red: '#EF4444',
-        purple: '#A855F7',
-        slate: '#94A3B8',
+        blue: '#2563EB',
+        green: '#15803D',
+        teal: '#0F766E',
+        orange: '#C2410C',
+        red: '#B91C1C',
+        purple: '#7E22CE',
+        slate: '#475569',
       },
     },
     ...shared,
@@ -145,8 +145,8 @@ export const naneThemes = {
 export type NaneTheme = typeof naneThemes.light | typeof naneThemes.dark;
 
 export function useNaneTheme(): NaneTheme {
-  const scheme = useColorScheme();
-  return naneThemes[scheme === 'dark' ? 'dark' : 'light'];
+  const { resolvedScheme } = useNaneThemePreference();
+  return naneThemes[resolvedScheme];
 }
 
 export function getReadableTextColor(background: string) {
@@ -163,10 +163,10 @@ export function statusToneFor(status?: string | null): StatusTone {
 
   if (['paid'].includes(normalized)) return 'paid';
   if (['active', 'approved', 'completed', 'complete', 'delivered', 'read', 'verified', 'present'].includes(normalized)) return 'success';
-  if (['pending', 'processing', 'queued', 'unpaid', 'due', 'partial'].includes(normalized)) return 'warning';
-  if (['failed', 'rejected', 'overdue', 'defaulted', 'cancelled', 'canceled', 'suspended', 'absent'].includes(normalized)) return 'danger';
+  if (['pending', 'processing', 'queued', 'unpaid', 'due', 'partial', 'slow'].includes(normalized)) return 'warning';
+  if (['failed', 'rejected', 'overdue', 'defaulted', 'cancelled', 'canceled', 'suspended', 'absent', 'issue'].includes(normalized)) return 'danger';
   if (['review', 'under review', 'draft'].includes(normalized)) return 'review';
-  if (['sent', 'published', 'issued', 'disbursed'].includes(normalized)) return 'info';
+  if (['sent', 'published', 'issued', 'disbursed', 'registered', 'awaiting run'].includes(normalized)) return 'info';
   return 'neutral';
 }
 

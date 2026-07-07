@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { TrendingDown, TrendingUp } from 'lucide-react-native';
 
-import { type KpiTone, useNaneTheme } from '@/theme/tokens';
+import { getReadableTextColor, type KpiTone, useNaneTheme } from '@/theme/tokens';
 import { MobileCard } from './MobileCard';
 import { MobileText } from './MobileText';
 
@@ -27,38 +27,51 @@ export function MobileKpiCard({
   tone = 'blue',
   icon: Icon,
   trend,
-  featured,
+  featured = true,
 }: MobileKpiCardProps) {
   const theme = useNaneTheme();
   const color = theme.colors.kpi[tone];
+  const featuredTextColor = getReadableTextColor(color);
+  const featuredOverlayColor = featuredTextColor === theme.colors.onPrimary ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.10)';
+  const featuredBorderColor = featuredTextColor === theme.colors.onPrimary ? 'rgba(255,255,255,0.16)' : 'rgba(15,23,42,0.14)';
   const TrendIcon = trend?.direction === 'down' ? TrendingDown : TrendingUp;
 
   if (featured) {
     return (
-      <View style={[styles.featured, { backgroundColor: theme.colors.primaryDark, shadowColor: theme.colors.shadow }]}>
+      <View style={[styles.featured, { backgroundColor: color, shadowColor: theme.colors.shadow }]}>
         <View style={styles.featuredHeader}>
-          <MobileText variant="small" weight="semibold" tone="inverse" style={styles.inverseMuted}>
+          <MobileText
+            variant="small"
+            weight="semibold"
+            numberOfLines={2}
+            style={[styles.featuredTitle, styles.featuredText, styles.featuredMuted, { color: featuredTextColor }]}
+          >
             {title}
           </MobileText>
           {Icon ? (
-            <View style={styles.featuredIcon}>
-              <Icon color={theme.colors.onPrimary} size={20} strokeWidth={2.4} />
+            <View style={[styles.featuredIcon, { backgroundColor: featuredOverlayColor, borderColor: featuredBorderColor }]}>
+              <Icon color={featuredTextColor} size={17} strokeWidth={2.4} />
             </View>
           ) : null}
         </View>
-        <MobileText variant="value" weight="bold" tone="inverse" style={styles.featuredValue} adjustsFontSizeToFit numberOfLines={1}>
+        <MobileText variant="section" weight="bold" style={[styles.featuredValue, styles.featuredText, { color: featuredTextColor }]} adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1}>
           {value}
         </MobileText>
         <View style={styles.featuredFooter}>
           {description ? (
-            <MobileText variant="small" tone="inverse" style={styles.inverseMuted}>
+            <MobileText variant="small" style={[styles.featuredText, styles.featuredMuted, { color: featuredTextColor }]}>
               {description}
             </MobileText>
           ) : null}
           {trend ? (
-            <View style={styles.featuredTrend}>
-              {trend.direction && trend.direction !== 'neutral' ? <TrendIcon color={theme.colors.onPrimary} size={14} /> : null}
-              <MobileText variant="tiny" weight="bold" tone="inverse">
+            <View style={[styles.featuredTrend, { backgroundColor: featuredOverlayColor }]}>
+              {trend.direction && trend.direction !== 'neutral' ? <TrendIcon color={featuredTextColor} size={14} /> : null}
+              <MobileText
+                variant="tiny"
+                weight="bold"
+                numberOfLines={1}
+                style={[styles.featuredText, styles.pillText, { color: featuredTextColor }]}
+              >
                 {trend.value} {trend.label || ''}
               </MobileText>
             </View>
@@ -77,13 +90,13 @@ export function MobileKpiCard({
         {trend ? (
           <View style={[styles.trend, { borderColor: theme.colors.border }]}>
             {trend.direction && trend.direction !== 'neutral' ? <TrendIcon color={color} size={13} /> : null}
-            <MobileText variant="tiny" weight="bold" style={{ color }}>
+            <MobileText variant="tiny" weight="bold" numberOfLines={1} style={[styles.pillText, { color }]}>
               {trend.value}
             </MobileText>
           </View>
         ) : null}
       </View>
-      <MobileText variant="section" weight="bold" style={{ color }} adjustsFontSizeToFit numberOfLines={1}>
+      <MobileText variant="section" weight="bold" style={{ color }} adjustsFontSizeToFit={value.length > 8} minimumFontScale={0.75} numberOfLines={1}>
         {value}
       </MobileText>
       <MobileText variant="small" weight="bold" numberOfLines={1}>
@@ -100,36 +113,43 @@ export function MobileKpiCard({
 
 const styles = StyleSheet.create({
   featured: {
-    borderRadius: 24,
-    padding: 20,
-    minHeight: 162,
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
+    borderRadius: 20,
+    padding: 15,
+    minHeight: 124,
+    flex: 1,
+    justifyContent: 'space-between',
+    shadowOpacity: 0.055,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   featuredHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
-    alignItems: 'center',
+    alignItems: 'flex-start',
+  },
+  featuredTitle: {
+    flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
   },
   featuredIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
+    flexShrink: 0,
   },
   featuredValue: {
-    marginTop: 18,
+    marginTop: 10,
   },
   featuredFooter: {
-    marginTop: 12,
-    gap: 10,
+    marginTop: 8,
+    gap: 6,
   },
   featuredTrend: {
     alignSelf: 'flex-start',
@@ -137,11 +157,16 @@ const styles = StyleSheet.create({
     gap: 6,
     alignItems: 'center',
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255,255,255,0.13)',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    maxWidth: '100%',
+    minWidth: 0,
+    flexShrink: 1,
   },
-  inverseMuted: {
+  featuredText: {
+    includeFontPadding: false,
+  },
+  featuredMuted: {
     opacity: 0.82,
   },
   card: {
@@ -170,5 +195,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 4,
     alignItems: 'center',
+    maxWidth: '62%',
+    minWidth: 0,
+    flexShrink: 1,
+  },
+  pillText: {
+    flexShrink: 1,
+    minWidth: 0,
   },
 });

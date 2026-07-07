@@ -1,7 +1,11 @@
 export function formatTzs(value: number) {
+  return formatCurrency(value, 'TZS');
+}
+
+export function formatCurrency(value: number, currency = 'TZS') {
   return new Intl.NumberFormat('en-TZ', {
     style: 'currency',
-    currency: 'TZS',
+    currency,
     currencyDisplay: 'code',
     maximumFractionDigits: 0,
   }).format(value);

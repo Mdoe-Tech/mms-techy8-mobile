@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 
 import { useAuth } from '@/auth/auth-context';
-import { MobilePageLoadingState } from '@/components/mobile';
+import { MobileLaunchScreen } from '@/components/mobile';
 import AccessDeniedScreen from '@/screens/AccessDeniedScreen';
 import LoginScreen from '@/screens/LoginScreen';
 import type { MobileViewMode } from '@/types/auth';
@@ -15,7 +15,7 @@ export function RequireAuth({ children, allowedViews }: RequireAuthProps) {
   const { activeView, booting, status } = useAuth();
 
   if (booting) {
-    return <MobilePageLoadingState kind="dashboard" message="Opening secure Nane workspace" />;
+    return <MobileLaunchScreen message="Opening Nane" />;
   }
 
   if (status !== 'authenticated' || !activeView) {

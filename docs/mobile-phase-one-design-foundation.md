@@ -176,6 +176,7 @@ Loading must be handled by shared components. Do not add ad-hoc spinners, gray b
 - `MobileActionSheet`
 - `MobileToast`
 - `MobileChartCard`
+- `MobileCheckboxRow`
 
 ## Detail Record System
 

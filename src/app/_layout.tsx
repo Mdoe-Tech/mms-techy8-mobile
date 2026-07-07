@@ -8,14 +8,18 @@ import {
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 
+import { AuthFeedbackBridge } from '@/auth/AuthFeedbackBridge';
 import { AuthProvider } from '@/auth/auth-context';
+import { WorkspaceIdentityProvider } from '@/auth/workspace-identity';
+import { MobileFeedbackHost, MobileFeedbackProvider, MobilePushNotificationProvider } from '@/components/mobile';
+import { installSafeBackNavigation } from '@/navigation/safe-back';
+import { NaneThemePreferenceProvider, useNaneThemePreference } from '@/theme/theme-preference';
+import { useNaneTheme } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     Quicksand_400Regular,
     Quicksand_500Medium,
@@ -29,14 +33,44 @@ export default function RootLayout() {
     }
   }, [fontsLoaded]);
 
+  useEffect(() => {
+    installSafeBackNavigation();
+  }, []);
+
   if (!fontsLoaded) {
     return null;
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <NaneThemePreferenceProvider>
+      <RootNavigation />
+    </NaneThemePreferenceProvider>
+  );
+}
+
+function RootNavigation() {
+  const { resolvedScheme } = useNaneThemePreference();
+  const theme = useNaneTheme();
+
+  return (
+    <ThemeProvider value={resolvedScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        <WorkspaceIdentityProvider>
+          <MobileFeedbackProvider>
+            <MobilePushNotificationProvider>
+              <AuthFeedbackBridge />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                  animationDuration: 220,
+                  contentStyle: { backgroundColor: theme.colors.background },
+                }}
+              />
+              <MobileFeedbackHost />
+            </MobilePushNotificationProvider>
+          </MobileFeedbackProvider>
+        </WorkspaceIdentityProvider>
       </AuthProvider>
     </ThemeProvider>
   );

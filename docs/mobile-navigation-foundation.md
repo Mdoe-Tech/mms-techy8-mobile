@@ -27,6 +27,10 @@ The goal is to make the React Native app ready for 100+ association admin routes
 
 The older route inventory was useful but not complete. The actual route tree also includes routes such as association notifications, association billing settings, association roles, association offline settings, member voting, member offline support, admin billing, and admin offline support.
 
+The full native migration sequence and completion checklist are tracked in:
+
+- `docs/mobile-full-product-roadmap.md`
+
 ## Mobile Navigation Rules
 
 - Bottom tabs stay stable and short: Home, Work, Search, More.
@@ -241,4 +245,3 @@ When native page migration starts, migrate one page at a time:
 4. Verify iOS light and dark screenshots.
 5. Replace the route preview placeholder with the real native screen.
 6. Mark the route as migrated in this document or a follow-up migration tracker.
-

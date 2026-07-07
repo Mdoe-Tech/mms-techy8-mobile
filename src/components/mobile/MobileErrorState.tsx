@@ -1,48 +1,37 @@
-import { CircleAlert } from 'lucide-react-native';
-import { StyleSheet, View } from 'react-native';
-
-import { useNaneTheme } from '@/theme/tokens';
-import { MobileButton } from './MobileButton';
-import { MobileText } from './MobileText';
+import { MobileErrorPanel } from './MobileErrorPanel';
+import type { MobileErrorDetailsInfo } from '@/utils/mobile-error';
 
 type MobileErrorStateProps = {
   title: string;
   description: string;
+  tone?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'review' | 'neutral' | 'paid';
   retryLabel?: string;
   onRetry?: () => void;
+  secondaryLabel?: string;
+  onSecondary?: () => void;
+  details?: MobileErrorDetailsInfo;
 };
 
-export function MobileErrorState({ title, description, retryLabel = 'Try again', onRetry }: MobileErrorStateProps) {
-  const theme = useNaneTheme();
-
+export function MobileErrorState({
+  title,
+  description,
+  tone = 'danger',
+  retryLabel = 'Try again',
+  onRetry,
+  secondaryLabel,
+  onSecondary,
+  details,
+}: MobileErrorStateProps) {
   return (
-    <View style={[styles.error, { backgroundColor: theme.colors.surface, borderColor: theme.colors.status.danger }]}>
-      <View style={[styles.icon, { backgroundColor: theme.colors.status.danger }]}>
-        <CircleAlert color={theme.colors.onPrimary} size={22} />
-      </View>
-      <MobileText variant="section" weight="bold">
-        {title}
-      </MobileText>
-      <MobileText variant="small" tone="secondary">
-        {description}
-      </MobileText>
-      {onRetry ? <MobileButton label={retryLabel} variant="danger" onPress={onRetry} /> : null}
-    </View>
+    <MobileErrorPanel
+      title={title}
+      description={description}
+      tone={tone}
+      primaryLabel={onRetry ? retryLabel : undefined}
+      onPrimary={onRetry}
+      secondaryLabel={secondaryLabel}
+      onSecondary={onSecondary}
+      details={details}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  error: {
-    borderRadius: 22,
-    borderWidth: 1.5,
-    padding: 18,
-    gap: 10,
-  },
-  icon: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

@@ -1,11 +1,11 @@
-import { Image } from 'expo-image';
 import { ArrowLeft, Bell } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import type { ReactNode } from 'react';
 
-import { useNaneTheme } from '@/theme/tokens';
+import { useWorkspaceIdentity } from '@/auth/workspace-identity';
 import { MobileIconButton } from './MobileIconButton';
 import { MobileText } from './MobileText';
+import { MobileWorkspaceLogo } from './MobileWorkspaceLogo';
 
 type MobilePageHeaderProps = {
   title: string;
@@ -20,20 +20,24 @@ export function MobilePageHeader({
   title,
   eyebrow,
   subtitle,
-  showLogo,
+  showLogo = true,
   onBack,
   rightAction,
 }: MobilePageHeaderProps) {
-  const theme = useNaneTheme();
+  const workspaceIdentity = useWorkspaceIdentity();
+  const useWorkspaceLogo = showLogo && workspaceIdentity.isAssociationWorkspace;
 
   return (
     <View style={styles.header}>
       <View style={styles.left}>
         {onBack ? <MobileIconButton icon={ArrowLeft} label="Back" variant="ghost" onPress={onBack} /> : null}
         {showLogo ? (
-          <View style={[styles.logoWrap, { borderColor: theme.colors.border }]}>
-            <Image source={require('@/assets/images/nane-logo.png')} style={styles.logo} />
-          </View>
+          <MobileWorkspaceLogo
+            appLogo={!useWorkspaceLogo}
+            name={workspaceIdentity.workspaceName || title}
+            source={useWorkspaceLogo ? workspaceIdentity.workspaceLogoSource : null}
+            size="md"
+          />
         ) : null}
         <View style={styles.titleBlock}>
           {eyebrow ? (
@@ -51,14 +55,16 @@ export function MobilePageHeader({
           ) : null}
         </View>
       </View>
-      {rightAction || <MobileIconButton icon={Bell} label="Notifications" />}
+      <View style={styles.right}>
+        {rightAction || <MobileIconButton icon={Bell} label="Notifications" />}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    minHeight: 64,
+    minHeight: 60,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -71,23 +77,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  logoWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  logo: {
-    width: 38,
-    height: 38,
-  },
   titleBlock: {
     flex: 1,
     minWidth: 0,
+  },
+  right: {
+    maxWidth: '46%',
+    minWidth: 0,
+    flexShrink: 1,
+    alignItems: 'flex-end',
   },
   title: {
     lineHeight: 24,

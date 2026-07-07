@@ -1,10 +1,7 @@
-import { RequireAuth } from '@/auth/RequireAuth';
-import RoutePreviewScreen from '@/screens/RoutePreviewScreen';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
-export default function RoutePreview() {
-  return (
-    <RequireAuth>
-      <RoutePreviewScreen />
-    </RequireAuth>
-  );
+export default function LegacyRoutePreviewRedirect() {
+  const params = useLocalSearchParams();
+
+  return <Redirect href={{ pathname: '/work/route-preview', params } as never} />;
 }

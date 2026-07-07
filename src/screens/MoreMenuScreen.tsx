@@ -1,54 +1,51 @@
 import { router } from 'expo-router';
-import { Boxes, ChevronRight, Layers3, Moon, Smartphone, Sun } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { ChevronRight, Moon, Smartphone, Sun } from 'lucide-react-native';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 
-import { useAuth } from '@/auth/auth-context';
 import {
   MobileCard,
+  MobileEmptyState,
   MobilePageHeader,
+  MobilePageLoadingState,
   MobileScreen,
   MobileStatusBadge,
-  MobileStatusTabs,
   MobileText,
 } from '@/components/mobile';
 import {
-  getModuleSummariesForRole,
-  mobileRoles,
+  getAccessibleModuleSummariesForRole,
+  getAccessibleRoutesForModule,
+  isMobileAccessLoading,
+  type MobileRouteAccessState,
+} from '@/navigation/mobile-access';
+import {
   roleForMobileView,
   roleLabels,
   type MobileModuleSummary,
   type MobileRole,
 } from '@/navigation/route-registry';
+import { useMobileAccess } from '@/navigation/use-mobile-access';
 import { useNaneTheme } from '@/theme/tokens';
 
 export default function MoreMenuScreen() {
-  const { activeView } = useAuth();
-  const defaultRole = roleForMobileView(activeView);
-  const [selectedRole, setSelectedRole] = useState<MobileRole | null>(null);
-  const role = selectedRole || defaultRole;
-  const modules = useMemo(() => getModuleSummariesForRole(role), [role]);
+  const access = useMobileAccess();
+  const role = roleForMobileView(access.activeView);
+  const modules = useMemo(() => getAccessibleModuleSummariesForRole(role, access), [access, role]);
   const theme = useNaneTheme();
   const scheme = useColorScheme();
   const SchemeIcon = scheme === 'dark' ? Moon : Sun;
+
+  if (isMobileAccessLoading(access)) {
+    return <MobilePageLoadingState kind="list" message="Checking your menu access" />;
+  }
 
   return (
     <MobileScreen>
       <MobilePageHeader
         showLogo
-        eyebrow="Navigation"
+        eyebrow="Menu"
         title="More"
-        subtitle="Module directory, previews, and system surfaces."
-      />
-
-      <MobileStatusTabs
-        tabs={mobileRoles.map((item) => ({
-          value: item,
-          label: roleLabels[item].short,
-          count: getModuleSummariesForRole(item).length,
-        }))}
-        value={role}
-        onChange={(nextRole) => setSelectedRole(nextRole as MobileRole)}
+        subtitle="Work areas and appearance."
       />
 
       <MobileCard compact accent="blue">
@@ -58,74 +55,51 @@ export default function MoreMenuScreen() {
           </View>
           <View style={styles.systemCopy}>
             <MobileText variant="section" weight="bold">
-              Mobile foundation
+              {roleLabels[role].label}
             </MobileText>
             <MobileText variant="small" tone="secondary">
-              Shared navigation, roles, components, loading, skeletons, and design previews.
+              {roleLabels[role].description}
             </MobileText>
           </View>
-          <MobileStatusBadge status="Ready" label="Phase 1" tone="success" />
+          <MobileStatusBadge status="Active" label="Current" tone="success" />
         </View>
       </MobileCard>
 
       <View style={styles.sectionHeader}>
         <MobileText variant="section" weight="bold">
-          Module directory
+          Work areas
         </MobileText>
         <MobileText variant="small" tone="secondary">
-          Every module visible to {roleLabels[role].short}.
+          Choose where you want to continue working.
         </MobileText>
       </View>
 
       <View style={styles.menuList}>
-        {modules.map((module) => (
-          <ModuleMenuRow key={module.id} module={module} role={role} />
-        ))}
+        {modules.length > 0 ? (
+          modules.map((module) => <ModuleMenuRow key={module.id} module={module} role={role} access={access} />)
+        ) : (
+          <MobileEmptyState
+            title="No work areas available"
+            description="Your current role or association plan does not include more mobile work areas."
+          />
+        )}
       </View>
 
       <View style={styles.sectionHeader}>
         <MobileText variant="section" weight="bold">
-          Design previews
+          Appearance
         </MobileText>
         <MobileText variant="small" tone="secondary">
-          Keep these until real pages replace the preview screens.
+          Uses your phone appearance setting.
         </MobileText>
       </View>
 
       <View style={styles.menuList}>
         <MenuRow
-          title="Association preview"
-          subtitle="Current admin mobile dashboard sample"
-          icon={Boxes}
-          badge="Preview"
-          onPress={() => router.push('/')}
-        />
-        <MenuRow
-          title="Member preview"
-          subtitle="Current member mobile dashboard sample"
-          icon={Boxes}
-          badge="Preview"
-          onPress={() => router.push('/member')}
-        />
-        <MenuRow
-          title="Component library"
-          subtitle="Mobile UI system samples and states"
-          icon={Layers3}
-          badge="Design"
-          onPress={() => router.push('/components')}
-        />
-        <MenuRow
-          title="Record details"
-          subtitle="Detail page, timeline, files, and form pattern"
-          icon={Layers3}
-          badge="Design"
-          onPress={() => router.push('/records')}
-        />
-        <MenuRow
           title={`${scheme === 'dark' ? 'Dark' : 'Light'} mode`}
           subtitle="Uses the device appearance setting"
           icon={SchemeIcon}
-          badge="Theme"
+          badge="Device"
           onPress={() => undefined}
         />
       </View>
@@ -133,14 +107,23 @@ export default function MoreMenuScreen() {
   );
 }
 
-function ModuleMenuRow({ module, role }: { module: MobileModuleSummary; role: MobileRole }) {
+function ModuleMenuRow({ module, role, access }: { module: MobileModuleSummary; role: MobileRole; access: MobileRouteAccessState }) {
+  const moduleRoutes = getAccessibleRoutesForModule(role, module.id, access);
+  const previewActions = moduleRoutes
+    .filter((route) => route.primary && !route.dynamic)
+    .concat(moduleRoutes)
+    .filter((route) => !route.dynamic)
+    .filter((route, index, all) => all.findIndex((item) => item.id === route.id) === index)
+    .slice(0, 2)
+    .map((route) => route.title);
+
   return (
     <MenuRow
       title={module.label}
-      subtitle={`${module.routeCount} routes · ${module.primaryCount} primary · ${module.dynamicCount} dynamic`}
+      subtitle={previewActions.length ? previewActions.join(' • ') : module.description}
       icon={module.icon}
-      badge={roleLabels[role].short}
-      onPress={() => router.push({ pathname: '/module', params: { module: module.id, role } } as never)}
+      badge="Open"
+      onPress={() => router.push({ pathname: '/work/module', params: { module: module.id, role } } as never)}
     />
   );
 }

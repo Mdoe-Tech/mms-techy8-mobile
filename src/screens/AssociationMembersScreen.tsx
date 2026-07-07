@@ -17,6 +17,7 @@ import {
   MobileKpiGridItem,
   MobilePageHeader,
   MobilePageLoadingState,
+  MobileReportExportButton,
   MobileScreen,
   MobileSearchToolbar,
   MobileSortSheet,
@@ -170,6 +171,39 @@ export default function AssociationMembersScreen() {
   const selectedRoute = getRouteByPath('/associations/members/new');
   const detailRoute = getRouteByPath('/associations/members/:memberId');
 
+  const memberReportOptions = useMemo(
+    () => ({
+      title: 'Member Registry Report',
+      associationName: user?.associationName || 'Association',
+      purpose: 'A filtered register of association members with status, contacts, packages, and profile readiness.',
+      rows: filteredMembers,
+      fileName: 'nane-member-registry',
+      metrics: [
+        { label: 'Total members', value: formatNumber(members.length), helper: 'Full registry loaded' },
+        { label: 'Active', value: formatNumber(activeMembers), helper: 'Currently active' },
+        { label: 'Pending work', value: formatNumber(pendingMembers), helper: 'Pending, partial, review' },
+        { label: 'Profile progress', value: formatPercent(averageProgress), helper: 'Average completion' },
+      ],
+      filters: [
+        { label: 'Search', value: search || 'All' },
+        { label: 'Status', value: status === 'all' ? 'All' : status },
+        { label: 'Sort', value: sortOptions.find((option) => option.value === sortBy)?.label || sortBy },
+      ],
+      columns: [
+        { key: 'number', label: '#', align: 'center' as const, width: '4%', value: (_member: AssociationMember, index: number) => index + 1 },
+        { key: 'membershipNumber', label: 'Membership No', width: '12%', value: (member: AssociationMember) => member.membershipNumber || member.employeeId || '-' },
+        { key: 'fullLegalName', label: 'Member Name', width: '18%', value: (member: AssociationMember) => member.fullLegalName || getBusinessName(member) || 'Unnamed member' },
+        { key: 'status', label: 'Status', width: '10%', value: (member: AssociationMember) => member.status || 'Unknown' },
+        { key: 'phone', label: 'Phone', width: '12%', value: (member: AssociationMember) => member.contactInfo?.phoneNumber || '-' },
+        { key: 'email', label: 'Email', width: '16%', value: (member: AssociationMember) => member.contactInfo?.email || '-' },
+        { key: 'package', label: 'Package', width: '12%', value: (member: AssociationMember) => member.packageName || '-' },
+        { key: 'progress', label: 'Progress', align: 'right' as const, width: '8%', value: (member: AssociationMember) => formatPercent(Number(member.registrationProgress || 0)) },
+        { key: 'joined', label: 'Joined', width: '8%', value: (member: AssociationMember) => formatDate(member.createdAt || member.firstRegistrationDate) },
+      ],
+    }),
+    [activeMembers, averageProgress, filteredMembers, members.length, pendingMembers, search, sortBy, status, user?.associationName],
+  );
+
   if (activeView !== 'ADMIN') {
     return (
       <AccessDeniedScreen
@@ -230,7 +264,7 @@ export default function AssociationMembersScreen() {
             size="sm"
             onPress={() =>
               selectedRoute
-                ? router.push({ pathname: '/route-preview', params: { routeId: selectedRoute.id } } as never)
+                ? router.push({ pathname: '/work/route-preview', params: { routeId: selectedRoute.id } } as never)
                 : undefined
             }
           />
@@ -266,7 +300,7 @@ export default function AssociationMembersScreen() {
 
       <MobileCard compact>
         <View style={styles.listHeader}>
-          <View>
+          <View style={styles.listHeaderText}>
             <MobileText variant="section" weight="bold">
               Member registry
             </MobileText>
@@ -274,13 +308,16 @@ export default function AssociationMembersScreen() {
               Showing {formatNumber(Math.min(visibleCount, filteredMembers.length))} of {formatNumber(filteredMembers.length)} matching members.
             </MobileText>
           </View>
-          <MobileIconButton
-            icon={RefreshCw}
-            label="Refresh members"
-            variant="secondary"
-            disabled={refreshing}
-            onPress={() => void loadMembers('refresh')}
-          />
+          <View style={styles.headerActions}>
+            <MobileReportExportButton mode="icon" label="Export members" options={memberReportOptions} onError={(exportError) => setError(getApiErrorMessage(exportError))} />
+            <MobileIconButton
+              icon={RefreshCw}
+              label="Refresh members"
+              variant="secondary"
+              disabled={refreshing}
+              onPress={() => void loadMembers('refresh')}
+            />
+          </View>
         </View>
       </MobileCard>
 
@@ -290,7 +327,7 @@ export default function AssociationMembersScreen() {
           onPressItem={(item) => {
             const member = visibleMembers.find((candidate) => candidate.id === item.id);
             if (member && detailRoute) {
-              router.push({ pathname: '/route-preview', params: { routeId: detailRoute.id, memberId: member.id } } as never);
+              router.push({ pathname: '/work/route-preview', params: { routeId: detailRoute.id, memberId: member.id } } as never);
             }
           }}
         />
@@ -385,5 +422,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  listHeaderText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 });

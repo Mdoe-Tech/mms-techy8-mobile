@@ -2,16 +2,25 @@ import { useAuth } from '@/auth/auth-context';
 import AccessDeniedScreen from '@/screens/AccessDeniedScreen';
 import AssociationHomeScreen from '@/screens/AssociationHomeScreen';
 import MemberHomeScreen from '@/screens/MemberHomeScreen';
+import MobileSystemAdminDashboardScreen from '@/screens/MobileSystemAdminDashboardScreen';
+import MobileUnionDashboardScreen from '@/screens/MobileUnionDashboardScreen';
 
 export default function HomeDashboardScreen() {
-  const { activeView } = useAuth();
+  const { activeView, user } = useAuth();
 
   if (activeView === 'ADMIN') {
+    if (user?.associationType === 'UNION') {
+      return <MobileUnionDashboardScreen />;
+    }
     return <AssociationHomeScreen />;
   }
 
   if (activeView === 'MEMBER') {
     return <MemberHomeScreen />;
+  }
+
+  if (activeView === 'SYSTEM_ADMIN') {
+    return <MobileSystemAdminDashboardScreen />;
   }
 
   return (

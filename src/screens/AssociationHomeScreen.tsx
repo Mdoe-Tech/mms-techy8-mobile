@@ -1,6 +1,22 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Banknote, Building2, CheckCircle2, Package, Plus, RefreshCw, Send, ShieldCheck, Users, WalletCards } from 'lucide-react-native';
+import {
+  AlertTriangle,
+  Banknote,
+  Building2,
+  CheckCircle2,
+  ClipboardCheck,
+  Package,
+  Plus,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  UserCheck,
+  UserX,
+  Users,
+  WalletCards,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
@@ -11,13 +27,16 @@ import {
   type MobileDataListItem,
   MobileEmptyState,
   MobileErrorState,
+  MobileHomeHeader,
   MobileKpiCard,
   MobileKpiGrid,
   MobileKpiGridItem,
   MobilePageHeader,
   MobilePageLoadingState,
+  MobileProgressBar,
   MobileScreen,
   MobileStatusBadge,
+  MobileSummaryPanel,
   MobileText,
 } from '@/components/mobile';
 import { getApiErrorMessage } from '@/types/api';
@@ -61,6 +80,8 @@ export default function AssociationHomeScreen() {
   const netPosition = dashboard?.profitLossCurrentYear ?? totalCollected - totalExpenses;
   const openItems =
     (dashboard?.inactiveMembers ?? 0) + (dashboard?.partiallyCompletedRegistrations ?? 0) + (dashboard?.packageSubscriptions?.filter((item) => item.pendingSubscriptions).length ?? 0);
+  const expenseCoverage = percentOf(totalExpenses, Math.max(totalCollected, totalExpenses));
+  const netCoverage = percentOf(Math.max(netPosition, 0), Math.max(totalCollected, totalExpenses));
 
   const recentMembers = useMemo<MobileDataListItem[]>(
     () =>
@@ -94,6 +115,14 @@ export default function AssociationHomeScreen() {
   );
   const membersRoute = getRouteByPath('/associations/members');
   const addMemberRoute = getRouteByPath('/associations/members/new');
+  const recordPaymentRoute = getRouteByPath('/associations/revenue-transactions/create');
+  const approvalsRoute = getRouteByPath('/associations/wallet/approve-withdrawals');
+  const smsConfigRoute = getRouteByPath('/associations/settings/sms-sender-config');
+  const openRoute = (route: ReturnType<typeof getRouteByPath>) => {
+    if (route) {
+      router.push({ pathname: '/work/route-preview', params: { routeId: route.id } } as never);
+    }
+  };
 
   if (loading && !dashboard) {
     return <MobilePageLoadingState kind="dashboard" message="Loading association dashboard" />;
@@ -101,7 +130,7 @@ export default function AssociationHomeScreen() {
 
   if (!associationId) {
     return (
-      <MobileScreen>
+      <MobileScreen refreshing={loading} onRefresh={() => void loadDashboard()}>
         <MobilePageHeader showLogo eyebrow="Association workspace" title="Association dashboard" subtitle="Association context unavailable" />
         <MobileErrorState
           title="Association not selected"
@@ -113,7 +142,7 @@ export default function AssociationHomeScreen() {
 
   if (error && !dashboard) {
     return (
-      <MobileScreen>
+      <MobileScreen refreshing={loading} onRefresh={() => void loadDashboard()}>
         <MobilePageHeader
           showLogo
           eyebrow="Association workspace"
@@ -129,36 +158,33 @@ export default function AssociationHomeScreen() {
   }
 
   return (
-    <MobileScreen>
-      <MobilePageHeader
-        showLogo
-        eyebrow="Association workspace"
-        title={associationName}
-        subtitle={`Updated ${formatDate(dashboard?.timestamp)}`}
-        rightAction={
-          <MobileButton
-            label="Refresh"
-            icon={RefreshCw}
-            size="sm"
-            variant="secondary"
-            loading={loading}
-            disabled={loading || !associationId}
-            onPress={loadDashboard}
-          />
-        }
+    <MobileScreen refreshing={loading} onRefresh={() => void loadDashboard()}>
+      <MobileHomeHeader
+        displayName={user?.fullName}
+        workspaceLabel="Association"
+        workspaceName={associationName}
+        subtitle={user?.email}
+        updatedText={formatDate(dashboard?.timestamp)}
+        refreshing={loading}
+        onRefresh={() => void loadDashboard()}
       />
 
       {error && dashboard ? (
         <MobileStatusBadge status="Refresh failed" label={error} tone="warning" />
       ) : null}
 
-      <MobileKpiCard
-        featured
+      <MobileSummaryPanel
         title="Year-to-date collections"
         value={formatTzs(totalCollected)}
         description={`${formatTzs(totalExpenses)} expenses · ${formatTzs(netPosition)} net`}
+        tone={netPosition >= 0 ? 'blue' : 'orange'}
         icon={WalletCards}
-        trend={{ value: formatNumber(dashboard?.newMembersLast30Days ?? 0), label: 'new members', direction: 'up' }}
+        footer={
+          <View style={styles.progressStack}>
+            <MobileProgressBar value={expenseCoverage} label="Expense coverage" tone={expenseCoverage > 75 ? 'orange' : 'green'} />
+            <MobileProgressBar value={netCoverage} label="Net collection position" tone={netPosition >= 0 ? 'green' : 'red'} />
+          </View>
+        }
       />
 
       <View style={styles.sectionHeader}>
@@ -168,32 +194,45 @@ export default function AssociationHomeScreen() {
         <MobileStatusBadge status="Review" label={`${formatNumber(openItems)} open`} tone="review" />
       </View>
 
-      <MobileCard>
-        <View style={styles.attentionGrid}>
-          <View style={styles.attentionItem}>
-            <MobileText variant="section" weight="bold">
-              {formatNumber(dashboard?.inactiveMembers ?? 0)}
+      <MobileCard compact>
+        <View style={styles.attentionPanelHeader}>
+          <View style={[styles.attentionPanelIcon, { backgroundColor: theme.colors.status.review }]}>
+            <AlertTriangle color={theme.colors.onPrimary} size={18} strokeWidth={2.4} />
+          </View>
+          <View style={styles.attentionPanelCopy}>
+            <MobileText variant="small" weight="bold">
+              Review snapshot
             </MobileText>
-            <MobileText variant="small" tone="secondary">
-              Inactive members
+            <MobileText variant="tiny" tone="secondary">
+              Quick signals that need action or confirmation.
             </MobileText>
           </View>
-          <View style={styles.attentionItem}>
-            <MobileText variant="section" weight="bold">
-              {formatNumber(dashboard?.partiallyCompletedRegistrations ?? 0)}
-            </MobileText>
-            <MobileText variant="small" tone="secondary">
-              Partial registrations
-            </MobileText>
-          </View>
-          <View style={styles.attentionItem}>
-            <MobileText variant="section" weight="bold">
-              {formatNumber(dashboard?.fullyCompliantMembers ?? 0)}
-            </MobileText>
-            <MobileText variant="small" tone="secondary">
-              Fully compliant
-            </MobileText>
-          </View>
+        </View>
+        <View style={styles.attentionList}>
+          <AttentionMetric
+            icon={UserX}
+            indicatorIcon={AlertTriangle}
+            value={dashboard?.inactiveMembers ?? 0}
+            title="Inactive"
+            description="Members to follow up"
+            color={theme.colors.status.danger}
+          />
+          <AttentionMetric
+            icon={ClipboardCheck}
+            indicatorIcon={AlertTriangle}
+            value={dashboard?.partiallyCompletedRegistrations ?? 0}
+            title="Incomplete"
+            description="Registrations to finish"
+            color={theme.colors.status.warning}
+          />
+          <AttentionMetric
+            icon={UserCheck}
+            indicatorIcon={CheckCircle2}
+            value={dashboard?.fullyCompliantMembers ?? 0}
+            title="Compliant"
+            description="Members in good standing"
+            color={theme.colors.status.success}
+          />
         </View>
       </MobileCard>
 
@@ -252,15 +291,11 @@ export default function AssociationHomeScreen() {
             label="Add member"
             icon={Plus}
             style={styles.actionButton}
-            onPress={() =>
-              addMemberRoute
-                ? router.push({ pathname: '/route-preview', params: { routeId: addMemberRoute.id } } as never)
-                : undefined
-            }
+            onPress={() => openRoute(addMemberRoute)}
           />
-          <MobileButton label="Record pay" icon={Banknote} variant="secondary" style={styles.actionButton} />
-          <MobileButton label="Approve" icon={CheckCircle2} variant="secondary" style={styles.actionButton} />
-          <MobileButton label="Send SMS" icon={Send} variant="secondary" style={styles.actionButton} />
+          <MobileButton label="Record pay" icon={Banknote} variant="secondary" style={styles.actionButton} onPress={() => openRoute(recordPaymentRoute)} />
+          <MobileButton label="Approve" icon={CheckCircle2} variant="secondary" style={styles.actionButton} onPress={() => openRoute(approvalsRoute)} />
+          <MobileButton label="SMS setup" icon={Send} variant="secondary" style={styles.actionButton} onPress={() => openRoute(smsConfigRoute)} />
         </View>
       </MobileCard>
 
@@ -272,11 +307,7 @@ export default function AssociationHomeScreen() {
           label="View all"
           variant="ghost"
           size="sm"
-          onPress={() =>
-            membersRoute
-              ? router.push({ pathname: '/route-preview', params: { routeId: membersRoute.id } } as never)
-              : undefined
-          }
+          onPress={() => openRoute(membersRoute)}
         />
       </View>
       {recentMembers.length ? (
@@ -300,6 +331,41 @@ export default function AssociationHomeScreen() {
   );
 }
 
+type AttentionMetricProps = {
+  icon: LucideIcon;
+  indicatorIcon: LucideIcon;
+  value: number;
+  title: string;
+  description: string;
+  color: string;
+};
+
+function AttentionMetric({ icon: Icon, indicatorIcon: IndicatorIcon, value, title, description, color }: AttentionMetricProps) {
+  const theme = useNaneTheme();
+
+  return (
+    <View style={[styles.attentionItem, { borderColor: theme.colors.border }]}>
+      <View style={[styles.attentionIcon, { backgroundColor: color }]}>
+        <Icon color={theme.colors.onPrimary} size={16} strokeWidth={2.4} />
+      </View>
+      <View style={styles.attentionItemCopy}>
+        <MobileText variant="small" weight="bold">
+          {title}
+        </MobileText>
+        <MobileText variant="tiny" tone="secondary">
+          {description}
+        </MobileText>
+      </View>
+      <View style={[styles.attentionValuePill, { backgroundColor: value > 0 ? color : theme.colors.textMuted }]}>
+        <IndicatorIcon color={theme.colors.onPrimary} size={13} strokeWidth={2.4} />
+        <MobileText variant="tiny" weight="bold" style={{ color: theme.colors.onPrimary }}>
+          {formatNumber(value)}
+        </MobileText>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
@@ -307,15 +373,55 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  attentionGrid: {
+  attentionPanelHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  attentionPanelIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attentionPanelCopy: {
+    flex: 1,
+    gap: 1,
+  },
+  attentionList: {
+    gap: 8,
   },
   attentionItem: {
-    flexGrow: 1,
-    flexBasis: '30%',
-    gap: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  attentionIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attentionItemCopy: {
+    flex: 1,
+    gap: 1,
+  },
+  attentionValuePill: {
+    minWidth: 48,
+    height: 30,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
   },
   actionGrid: {
     marginTop: 14,
@@ -327,4 +433,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: '47%',
   },
+  progressStack: {
+    gap: 10,
+  },
 });
+
+function percentOf(value: number, total: number) {
+  if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return 0;
+  return Math.round(Math.max(0, Math.min(100, (value / total) * 100)));
+}

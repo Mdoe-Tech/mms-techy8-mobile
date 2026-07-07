@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { router } from 'expo-router';
 import { CalendarDays, CreditCard, FileText, Landmark, RefreshCw, ShieldCheck, WalletCards } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
@@ -9,6 +10,7 @@ import {
   type MobileDataListItem,
   MobileEmptyState,
   MobileErrorState,
+  MobileHomeHeader,
   MobileKpiCard,
   MobileKpiGrid,
   MobileKpiGridItem,
@@ -19,7 +21,8 @@ import {
   MobileStatusBadge,
   MobileText,
 } from '@/components/mobile';
-import { getApiErrorMessage } from '@/types/api';
+import { getRouteByPath } from '@/navigation/route-registry';
+import { getApiErrorMessage, MobileApiError } from '@/types/api';
 import { getMemberDashboard, type MemberDashboardData } from '@/services/dashboard-service';
 import { useNaneTheme } from '@/theme/tokens';
 import { formatDate, formatNumber, formatPercent, formatTzs } from '@/utils/format';
@@ -29,6 +32,18 @@ export default function MemberHomeScreen() {
   const [dashboard, setDashboard] = useState<MemberDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const paymentRoute = getRouteByPath('/member/pay/generic');
+  const deductionsRoute = getRouteByPath('/member/deductions');
+  const loanRequestRoute = getRouteByPath('/member/loans/request');
+  const invoicesRoute = getRouteByPath('/member/invoices');
+  const eventsRoute = getRouteByPath('/member/events');
+  const registrationRoute = getRouteByPath('/member/registration/complete');
+  const openRoute = (route: ReturnType<typeof getRouteByPath>) => {
+    if (route) router.push({ pathname: '/work/route-preview', params: { routeId: route.id } } as never);
+  };
+  const openRouteReplacement = useCallback((route: ReturnType<typeof getRouteByPath>) => {
+    if (route) router.replace({ pathname: '/work/route-preview', params: { routeId: route.id } } as never);
+  }, []);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -37,11 +52,15 @@ export default function MemberHomeScreen() {
     try {
       setDashboard(await getMemberDashboard());
     } catch (loadError) {
+      if (loadError instanceof MobileApiError && loadError.status === 404 && registrationRoute) {
+        openRouteReplacement(registrationRoute);
+        return;
+      }
       setError(getApiErrorMessage(loadError));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [openRouteReplacement, registrationRoute]);
 
   useEffect(() => {
     void Promise.resolve().then(loadDashboard);
@@ -77,13 +96,22 @@ export default function MemberHomeScreen() {
     [dashboard?.subscribedPackages],
   );
 
+  const isUnionMember = dashboard?.associationType?.toUpperCase() === 'UNION';
+  const primaryActionRoute = isUnionMember ? deductionsRoute : paymentRoute;
+  const primaryActionLabel = isUnionMember ? 'Deductions' : 'Pay shares';
+  const primaryActionIcon = isUnionMember ? WalletCards : CreditCard;
+  const contributionValue = isUnionMember ? dashboard?.unionContributions?.totalAmount : dashboard?.totalContributions;
+  const contributionDescription = isUnionMember
+    ? `${formatNumber(dashboard?.unionContributions?.contributionCount ?? 0)} deduction records`
+    : 'Total recorded';
+
   if (loading && !dashboard) {
     return <MobilePageLoadingState kind="dashboard" message="Loading member dashboard" />;
   }
 
   if (error && !dashboard) {
     return (
-      <MobileScreen>
+      <MobileScreen refreshing={loading} onRefresh={() => void loadDashboard()}>
         <MobilePageHeader
           showLogo
           eyebrow="Member portal"
@@ -99,15 +127,14 @@ export default function MemberHomeScreen() {
   }
 
   return (
-    <MobileScreen>
-      <MobilePageHeader
-        showLogo
-        eyebrow="Member portal"
-        title={`Hi ${dashboard?.memberName || 'Member'}`}
-        subtitle={`${dashboard?.associationName || 'Nane association'} · ${dashboard?.membershipNumber || 'Membership number pending'}`}
-        rightAction={
-          <MobileButton label="Refresh" icon={RefreshCw} size="sm" variant="secondary" loading={loading} disabled={loading} onPress={loadDashboard} />
-        }
+    <MobileScreen refreshing={loading} onRefresh={() => void loadDashboard()}>
+      <MobileHomeHeader
+        displayName={dashboard?.memberName || 'Member'}
+        workspaceLabel="Member"
+        workspaceName={dashboard?.associationName || 'Nane association'}
+        subtitle={dashboard?.membershipNumber || 'Membership number pending'}
+        refreshing={loading}
+        onRefresh={() => void loadDashboard()}
       />
 
       {error && dashboard ? <MobileStatusBadge status="Refresh failed" label={error} tone="warning" /> : null}
@@ -123,11 +150,11 @@ export default function MemberHomeScreen() {
 
       <MobileCard>
         <View style={styles.membershipHeader}>
-          <View>
+          <View style={styles.membershipCopy}>
             <MobileText variant="section" weight="bold">
               Membership status
             </MobileText>
-            <MobileText variant="small" tone="secondary">
+            <MobileText variant="small" tone="secondary" numberOfLines={2}>
               {dashboard?.membershipNumber || 'Membership number pending'} · Joined {formatDate(dashboard?.memberSince)}
             </MobileText>
           </View>
@@ -139,12 +166,24 @@ export default function MemberHomeScreen() {
         </MobileText>
       </MobileCard>
 
+      <MobileCard>
+        <MobileText variant="section" weight="bold">
+          Quick actions
+        </MobileText>
+        <View style={styles.actionGrid}>
+          <MobileButton label={primaryActionLabel} icon={primaryActionIcon} style={styles.actionButton} onPress={() => openRoute(primaryActionRoute)} />
+          <MobileButton label="Request loan" icon={Landmark} variant="secondary" style={styles.actionButton} onPress={() => openRoute(loanRequestRoute)} />
+          <MobileButton label="Invoice" icon={FileText} variant="secondary" style={styles.actionButton} onPress={() => openRoute(invoicesRoute)} />
+          <MobileButton label="Events" icon={CalendarDays} variant="secondary" style={styles.actionButton} onPress={() => openRoute(eventsRoute)} />
+        </View>
+      </MobileCard>
+
       <MobileKpiGrid>
         <MobileKpiGridItem>
           <MobileKpiCard
-            title="Contributions"
-            value={formatTzs(dashboard?.totalContributions ?? dashboard?.totalSocialContributions ?? 0)}
-            description="Total recorded"
+            title={isUnionMember ? 'Deductions' : 'Contributions'}
+            value={formatTzs(contributionValue ?? dashboard?.totalSocialContributions ?? 0)}
+            description={contributionDescription}
             tone="teal"
             icon={WalletCards}
           />
@@ -177,18 +216,6 @@ export default function MemberHomeScreen() {
           />
         </MobileKpiGridItem>
       </MobileKpiGrid>
-
-      <MobileCard>
-        <MobileText variant="section" weight="bold">
-          What you can do
-        </MobileText>
-        <View style={styles.actionGrid}>
-          <MobileButton label="Pay shares" icon={CreditCard} style={styles.actionButton} />
-          <MobileButton label="Request loan" icon={Landmark} variant="secondary" style={styles.actionButton} />
-          <MobileButton label="Invoice" icon={FileText} variant="secondary" style={styles.actionButton} />
-          <MobileButton label="Events" icon={CalendarDays} variant="secondary" style={styles.actionButton} />
-        </View>
-      </MobileCard>
 
       <View style={styles.sectionHeader}>
         <MobileText variant="section" weight="bold">
@@ -223,6 +250,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
+  },
+  membershipCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   membershipProgress: {
     marginTop: 16,

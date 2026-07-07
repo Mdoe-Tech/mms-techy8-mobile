@@ -16,7 +16,7 @@ type MobilePageLoadingStateProps = {
 };
 
 export function MobilePageLoadingState({
-  message = 'Preparing Nane workspace',
+  message = 'Preparing your workspace',
   kind = 'dashboard',
   fullScreen = true,
 }: MobilePageLoadingStateProps) {
@@ -61,10 +61,10 @@ export function MobilePageLoadingState({
 const styles = StyleSheet.create({
   screenContent: {
     flexGrow: 1,
-    gap: 18,
+    gap: 16,
   },
   inlineContent: {
-    gap: 18,
+    gap: 16,
   },
   header: {
     minHeight: 64,
@@ -78,6 +78,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   spinner: {
-    marginVertical: 6,
+    marginVertical: 4,
   },
 });

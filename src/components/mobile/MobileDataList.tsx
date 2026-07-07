@@ -13,6 +13,7 @@ export type MobileDataListItem = {
   meta?: string;
   amount?: string;
   status?: string;
+  statusLabel?: string;
   statusTone?: StatusTone;
   initials?: string;
   accent?: StatusTone;
@@ -55,7 +56,11 @@ export function MobileDataList({ items, onPressItem, showChevron = Boolean(onPre
                 <MobileText variant="body" weight="bold" numberOfLines={1} style={styles.title}>
                   {item.title}
                 </MobileText>
-                {item.status ? <MobileStatusBadge status={item.status} tone={item.statusTone} /> : null}
+                {item.status ? (
+                  <View style={styles.statusSlot}>
+                    <MobileStatusBadge status={item.status} label={item.statusLabel} tone={item.statusTone} />
+                  </View>
+                ) : null}
               </View>
               {item.subtitle ? (
                 <MobileText variant="small" tone="secondary" numberOfLines={1}>
@@ -95,10 +100,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    shadowOpacity: 0.04,
-    shadowRadius: 9,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    shadowOpacity: 0.015,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 0,
   },
   avatar: {
     width: 42,
@@ -120,6 +125,13 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
+    minWidth: 0,
+  },
+  statusSlot: {
+    maxWidth: '44%',
+    minWidth: 0,
+    flexShrink: 1,
+    alignItems: 'flex-end',
   },
   metaRow: {
     flexDirection: 'row',

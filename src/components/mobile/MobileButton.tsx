@@ -28,8 +28,9 @@ export function MobileButton({
 }: MobileButtonProps) {
   const theme = useNaneTheme();
   const isDisabled = disabled || loading;
+  const visuallyDisabled = Boolean(disabled && !loading);
   const height = size === 'sm' ? 38 : 46;
-  const backgroundColor =
+  const activeBackgroundColor =
     variant === 'primary'
       ? theme.colors.primary
       : variant === 'danger'
@@ -37,13 +38,19 @@ export function MobileButton({
         : variant === 'secondary'
           ? theme.colors.surface
           : 'transparent';
-  const foreground =
+  const backgroundColor = visuallyDisabled ? theme.colors.disabled : activeBackgroundColor;
+  const foreground = visuallyDisabled
+    ? theme.colors.textMuted
+    :
     variant === 'primary' || variant === 'danger'
       ? theme.colors.onPrimary
       : variant === 'secondary'
         ? theme.colors.text
         : theme.colors.primary;
   const borderColor =
+    visuallyDisabled
+      ? theme.colors.border
+      :
     variant === 'secondary'
       ? theme.colors.borderStrong
       : variant === 'ghost'
@@ -53,6 +60,7 @@ export function MobileButton({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: Boolean(loading) }}
       disabled={isDisabled}
       style={({ pressed }) => [
         styles.button,
@@ -60,7 +68,7 @@ export function MobileButton({
           height,
           backgroundColor,
           borderColor,
-          opacity: isDisabled ? 0.55 : pressed ? 0.82 : 1,
+          opacity: loading ? 0.82 : pressed ? 0.82 : 1,
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
         },
         fullWidth ? styles.fullWidth : null,
@@ -73,7 +81,7 @@ export function MobileButton({
       ) : (
         <View style={styles.content}>
           {Icon ? <Icon color={foreground} size={17} strokeWidth={2.5} /> : null}
-          <MobileText variant="small" weight="bold" style={{ color: foreground }}>
+          <MobileText numberOfLines={1} variant="small" weight="bold" style={[styles.label, { color: foreground }]}>
             {label}
           </MobileText>
         </View>
@@ -99,6 +107,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    minWidth: 0,
+  },
+  label: {
+    flexShrink: 1,
   },
 });
-

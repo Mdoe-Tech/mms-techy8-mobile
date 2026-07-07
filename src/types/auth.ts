@@ -22,6 +22,9 @@ export type AuthAssociationOption = {
   associationName: string;
   schema?: string;
   associationType?: string;
+  logoPath?: string | null;
+  logoUrl?: string | null;
+  logo?: string | null;
 };
 
 export type AuthResponse = {
@@ -68,4 +71,3 @@ export type JwtPayload = {
   exp?: number;
   iat?: number;
 };
-

@@ -10,6 +10,8 @@ type MobileConfirmSheetProps = {
   description: string;
   confirmLabel?: string;
   destructive?: boolean;
+  loading?: boolean;
+  confirmDisabled?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 };
@@ -20,6 +22,8 @@ export function MobileConfirmSheet({
   description,
   confirmLabel = 'Confirm',
   destructive,
+  loading,
+  confirmDisabled,
   onCancel,
   onConfirm,
 }: MobileConfirmSheetProps) {
@@ -29,8 +33,16 @@ export function MobileConfirmSheet({
         {description}
       </MobileText>
       <View style={styles.actions}>
-        <MobileButton label="Cancel" variant="secondary" onPress={onCancel} />
-        <MobileButton label={confirmLabel} variant={destructive ? 'danger' : 'primary'} fullWidth onPress={onConfirm} style={styles.confirm} />
+        <MobileButton label="Cancel" variant="secondary" onPress={onCancel} disabled={loading} />
+        <MobileButton
+          label={confirmLabel}
+          variant={destructive ? 'danger' : 'primary'}
+          fullWidth
+          loading={loading}
+          disabled={confirmDisabled || loading}
+          onPress={onConfirm}
+          style={styles.confirm}
+        />
       </View>
     </MobileSheet>
   );
@@ -45,4 +57,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

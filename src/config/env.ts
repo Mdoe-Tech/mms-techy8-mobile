@@ -19,5 +19,12 @@ export const mobileEnv = {
       readExtraValue('naneApiBaseUrl') ||
       DEFAULT_API_BASE_URL,
   ),
+  pushDeviceRegistrationPath:
+    process.env.EXPO_PUBLIC_NANE_PUSH_DEVICE_REGISTRATION_PATH ||
+    readExtraValue('nanePushDeviceRegistrationPath') ||
+    '',
+  pushDeviceUnregistrationPath:
+    process.env.EXPO_PUBLIC_NANE_PUSH_DEVICE_UNREGISTRATION_PATH ||
+    readExtraValue('nanePushDeviceUnregistrationPath') ||
+    '',
 };
-

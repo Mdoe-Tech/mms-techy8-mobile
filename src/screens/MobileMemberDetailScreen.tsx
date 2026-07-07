@@ -3,6 +3,8 @@ import {
   BadgeCheck,
   Banknote,
   CalendarDays,
+  Edit3,
+  FileText,
   Hash,
   Landmark,
   Mail,
@@ -55,6 +57,7 @@ import {
 import { getApiErrorMessage } from '@/types/api';
 import { formatDate, formatNumber, formatPercent, formatTzs } from '@/utils/format';
 import AccessDeniedScreen from '@/screens/AccessDeniedScreen';
+import { getRouteByPath } from '@/navigation/route-registry';
 
 type MobileMemberDetailScreenProps = {
   memberId?: string;
@@ -139,6 +142,10 @@ export default function MobileMemberDetailScreen({ memberId }: MobileMemberDetai
     summary?.overdueCount ?? transactions.filter((transaction) => normalizeStatus(transaction.paymentStatus) === 'OVERDUE').length;
   const activeLoanBalance = loans.reduce((sum, loan) => sum + Number(loan.remainingBalance || 0), 0);
   const openLoans = loans.filter((loan) => !['COMPLETED', 'REJECTED', 'CANCELLED'].includes(normalizeStatus(loan.status))).length;
+  const editRoute = getRouteByPath('/associations/members/:memberId/edit');
+  const documentsRoute = getRouteByPath('/associations/members/:memberId/documents');
+  const invoicesRoute = getRouteByPath('/associations/members/:memberId/invoices');
+  const statementRoute = getRouteByPath('/associations/statements/:memberId');
 
   const transactionItems = useMemo<MobileDataListItem[]>(
     () =>
@@ -215,13 +222,25 @@ export default function MobileMemberDetailScreen({ memberId }: MobileMemberDetai
         subtitle={member.associationName || user?.associationName || 'Association member'}
         onBack={() => router.back()}
         rightAction={
-          <MobileIconButton
-            icon={RefreshCw}
-            label="Refresh member"
-            variant="secondary"
-            disabled={refreshing}
-            onPress={() => void loadMember('refresh')}
-          />
+          <View style={styles.headerActions}>
+            <MobileIconButton
+              icon={Edit3}
+              label="Edit member"
+              variant="secondary"
+              onPress={() => {
+                if (editRoute && member.id) {
+                  router.push({ pathname: '/work/route-preview', params: { routeId: editRoute.id, memberId: member.id } } as never);
+                }
+              }}
+            />
+            <MobileIconButton
+              icon={RefreshCw}
+              label="Refresh member"
+              variant="secondary"
+              disabled={refreshing}
+              onPress={() => void loadMember('refresh')}
+            />
+          </View>
         }
       />
 
@@ -319,6 +338,28 @@ export default function MobileMemberDetailScreen({ memberId }: MobileMemberDetai
         <MobileInfoRow label="Paid transactions" value={formatNumber(paidTransactions)} icon={ReceiptText} helper={`${formatNumber(transactions.length)} total transaction records loaded`} />
         <MobileInfoRow label="Pending and overdue" value={`${formatNumber(pendingTransactions)} pending · ${formatNumber(overdueTransactions)} overdue`} icon={Banknote} />
         <MobileInfoRow label="Active loan balance" value={formatTzs(activeLoanBalance)} icon={Landmark} helper={`${formatNumber(openLoans)} open loan records`} />
+        <MobileButton
+          label="View invoices"
+          icon={ReceiptText}
+          variant="secondary"
+          fullWidth
+          onPress={() => {
+            if (invoicesRoute && member.id) {
+              router.push({ pathname: '/work/route-preview', params: { routeId: invoicesRoute.id, memberId: member.id } } as never);
+            }
+          }}
+        />
+        <MobileButton
+          label="View statement"
+          icon={FileText}
+          variant="secondary"
+          fullWidth
+          onPress={() => {
+            if (statementRoute && member.id) {
+              router.push({ pathname: '/work/route-preview', params: { routeId: statementRoute.id, memberId: member.id } } as never);
+            }
+          }}
+        />
       </MobileCard>
 
       <View style={styles.sectionHeader}>
@@ -327,6 +368,17 @@ export default function MobileMemberDetailScreen({ memberId }: MobileMemberDetai
         </MobileText>
         <MobileStatusBadge status="Documents" label={formatNumber(documents.length)} tone={documents.length ? 'primary' : 'neutral'} />
       </View>
+      <MobileButton
+        label="Manage documents"
+        icon={FileText}
+        variant="secondary"
+        fullWidth
+        onPress={() => {
+          if (documentsRoute && member.id) {
+            router.push({ pathname: '/work/route-preview', params: { routeId: documentsRoute.id, memberId: member.id } } as never);
+          }
+        }}
+      />
       {documents.length ? (
         <View style={styles.stack}>
           {documents.slice(0, 4).map((document) => (
@@ -433,6 +485,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     paddingTop: 12,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
   },
   actionButton: {
     flex: 1,

@@ -12,6 +12,8 @@ type MobileDetailHeaderProps = {
   subtitle?: string;
   eyebrow?: string;
   status?: string;
+  statusLabel?: string;
+  statusTone?: StatusTone;
   avatarName?: string;
   avatarTone?: StatusTone;
   onActionsPress?: () => void;
@@ -22,14 +24,26 @@ export function MobileDetailHeader({
   subtitle,
   eyebrow,
   status,
+  statusLabel,
+  statusTone,
   avatarName,
   avatarTone = 'primary',
   onActionsPress,
 }: MobileDetailHeaderProps) {
   const theme = useNaneTheme();
+  const statusBorder = statusTone ? theme.colors.status[statusTone] : theme.colors.border;
 
   return (
-    <View style={[styles.header, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+    <View
+      style={[
+        styles.header,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: status ? statusBorder : theme.colors.border,
+          shadowColor: theme.colors.shadow,
+        },
+      ]}
+    >
       <View style={styles.top}>
         {avatarName ? <MobileAvatar name={avatarName} tone={avatarTone} size="lg" /> : null}
         <View style={styles.titleBlock}>
@@ -49,7 +63,11 @@ export function MobileDetailHeader({
         </View>
         {onActionsPress ? <MobileIconButton icon={MoreHorizontal} label="Record actions" onPress={onActionsPress} /> : null}
       </View>
-      {status ? <MobileStatusBadge status={status} /> : null}
+      {status ? (
+        <View style={styles.statusRow}>
+          <MobileStatusBadge status={status} label={statusLabel} tone={statusTone} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -57,9 +75,13 @@ export function MobileDetailHeader({
 const styles = StyleSheet.create({
   header: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 22,
     padding: 16,
     gap: 12,
+    shadowOpacity: 0.02,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 0,
   },
   top: {
     flexDirection: 'row',
@@ -74,5 +96,11 @@ const styles = StyleSheet.create({
   eyebrow: {
     textTransform: 'uppercase',
     letterSpacing: 0.4,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    maxWidth: '100%',
+    minWidth: 0,
   },
 });

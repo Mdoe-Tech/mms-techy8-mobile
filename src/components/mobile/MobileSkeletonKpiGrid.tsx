@@ -23,9 +23,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    alignItems: 'stretch',
   },
   item: {
     flexGrow: 1,
     flexBasis: '47%',
+    alignSelf: 'stretch',
   },
 });

@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal } from 'lucide-react-native';
+import { Search, SlidersHorizontal, X } from 'lucide-react-native';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { useNaneTheme } from '@/theme/tokens';
@@ -39,6 +39,11 @@ export function MobileSearchToolbar({
             },
           ]}
         />
+        {value ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => onChange('')} hitSlop={8} style={styles.clearButton}>
+            <X color={theme.colors.textMuted} size={16} strokeWidth={2.6} />
+          </Pressable>
+        ) : null}
       </View>
       {onFilterPress ? (
         <Pressable
@@ -49,7 +54,7 @@ export function MobileSearchToolbar({
           ]}
         >
           <SlidersHorizontal color={theme.colors.primary} size={17} />
-          <MobileText variant="small" weight="bold" style={{ color: theme.colors.primary }}>
+          <MobileText numberOfLines={1} variant="small" weight="bold" style={[styles.filterLabel, { color: theme.colors.primary }]}>
             {filterLabel}
           </MobileText>
         </Pressable>
@@ -63,9 +68,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     alignItems: 'center',
+    minWidth: 0,
   },
   search: {
     flex: 1,
+    minWidth: 0,
     minHeight: 46,
     borderRadius: 16,
     borderWidth: 1,
@@ -76,9 +83,18 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    minWidth: 0,
     paddingVertical: 0,
   },
+  clearButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   filter: {
+    flexShrink: 0,
     minHeight: 46,
     borderRadius: 16,
     borderWidth: 1,
@@ -86,5 +102,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
+  },
+  filterLabel: {
+    flexShrink: 1,
   },
 });

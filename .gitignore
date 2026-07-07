@@ -36,6 +36,7 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 test-results/
+build-output/
 
 example
 

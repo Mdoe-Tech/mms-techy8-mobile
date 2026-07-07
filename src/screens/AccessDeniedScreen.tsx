@@ -1,4 +1,4 @@
-import { LogOut, ShieldAlert } from 'lucide-react-native';
+import { ArrowLeft, LogOut, ShieldAlert } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
@@ -8,14 +8,19 @@ import { useNaneTheme } from '@/theme/tokens';
 type AccessDeniedScreenProps = {
   title?: string;
   description?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 };
 
 export default function AccessDeniedScreen({
   title = 'Workspace unavailable',
   description = 'This account does not have access to this mobile workspace.',
+  actionLabel,
+  onAction,
 }: AccessDeniedScreenProps) {
   const theme = useNaneTheme();
   const { loading, signOut, user } = useAuth();
+  const ActionIcon = onAction ? ArrowLeft : LogOut;
 
   return (
     <MobileScreen>
@@ -31,7 +36,13 @@ export default function AccessDeniedScreen({
         <MobileText variant="body" tone="secondary">
           {description}
         </MobileText>
-        <MobileButton label="Sign out" icon={LogOut} variant="secondary" loading={loading} onPress={signOut} />
+        <MobileButton
+          label={actionLabel || 'Sign out'}
+          icon={ActionIcon}
+          variant="secondary"
+          loading={onAction ? false : loading}
+          onPress={onAction || signOut}
+        />
       </MobileCard>
     </MobileScreen>
   );

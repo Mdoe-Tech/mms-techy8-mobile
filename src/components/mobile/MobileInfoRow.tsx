@@ -36,7 +36,11 @@ export function MobileInfoRow({ label, value, helper, icon: Icon, status }: Mobi
           </MobileText>
         ) : null}
       </View>
-      {status ? <MobileStatusBadge status={status} /> : null}
+      {status ? (
+        <View style={styles.statusSlot}>
+          <MobileStatusBadge status={status} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -61,6 +65,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     gap: 2,
+  },
+  statusSlot: {
+    maxWidth: '42%',
+    minWidth: 0,
+    flexShrink: 1,
+    alignItems: 'flex-end',
   },
   label: {
     textTransform: 'uppercase',
