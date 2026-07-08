@@ -654,7 +654,6 @@ const associationTypeRestrictions: AssociationTypeRouteRestriction[] = [
   { prefix: '/associations/loans', allowed: ['VIKOBA'] },
   { prefix: '/associations/group-config', allowed: ['VIKOBA'] },
   { prefix: '/associations/year-end-close', allowed: ['VIKOBA'] },
-  { prefix: '/associations/revenue-transactions/create', allowed: ['VIKOBA'] },
   { prefix: '/associations/revenue-transactions/calender', allowed: ['VIKOBA'] },
   { prefix: '/associations/revenue-transactions/member-page', allowed: ['VIKOBA'] },
   { prefix: '/associations/revenue-transactions/over-due', allowed: ['VIKOBA'] },
