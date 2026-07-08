@@ -1,4 +1,5 @@
 import { MEMBER_SELF_SERVICE_BASELINE, expandPermissionKeys, normalizeAccessValue, normalizePermissionKey } from '@/auth/permission-utils';
+import { normalizeAssociationType } from '@/auth/association-type';
 import type { BillingEntitlements, BillingFeatureEntitlement } from '@/services/billing-entitlement-service';
 import type { AuthUser, MobileViewMode } from '@/types/auth';
 import {
@@ -11,7 +12,6 @@ import {
   type MobileRouteItem,
   type MobileRouteModule,
   type MobileRole,
-  type SupportedAssociationType,
 } from './route-registry';
 
 export type MobileRouteAccessState = {
@@ -57,7 +57,7 @@ export function canAccessMobileRoute(route: MobileRouteItem, access: MobileRoute
     };
   }
 
-  if (!isAllowedForAssociationType(route, access.user?.associationType)) {
+  if (!isAllowedForAssociationType(route, access.user?.associationType || access.billingEntitlements?.associationType)) {
     return {
       allowed: false,
       reason: 'association-type',
@@ -157,13 +157,6 @@ function isAllowedForAssociationType(route: MobileRouteItem, associationType?: s
   if (!route.allowedAssociationTypes?.length) return true;
   const normalized = normalizeAssociationType(associationType);
   return Boolean(normalized && route.allowedAssociationTypes.includes(normalized));
-}
-
-function normalizeAssociationType(value?: string | null): SupportedAssociationType | null {
-  const normalized = String(value || '').trim().toUpperCase();
-  if (normalized === 'SACCOS') return 'VIKOBA';
-  if (normalized === 'GENERIC' || normalized === 'VIKOBA' || normalized === 'UNION') return normalized;
-  return null;
 }
 
 function getDeniedBillingFeature(route: MobileRouteItem, access: MobileRouteAccessState) {

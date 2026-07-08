@@ -1,4 +1,5 @@
 import type { AuthUser, JwtPayload } from '@/types/auth';
+import { normalizeAssociationType } from '@/auth/association-type';
 
 const ASSOCIATION_ADMIN_ROLES = new Set([
   'ADMIN',
@@ -65,6 +66,31 @@ export function normalizeRole(role?: string | null) {
 
 function normalizePermission(permission?: string | null) {
   return String(permission || '').trim().toLowerCase();
+}
+
+function stringClaim(payload: JwtPayload, ...keys: string[]) {
+  const record = payload as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+function associationTypeClaim(payload: JwtPayload) {
+  const direct = stringClaim(
+    payload,
+    'associationType',
+    'association_type',
+    'association_type_name',
+    'associationTypeName',
+    'tenantType',
+    'tenant_type',
+    'organizationType',
+    'organisationType',
+  );
+  const normalized = normalizeAssociationType(direct);
+  return normalized || direct;
 }
 
 function isAssociationSurfacePermission(permission?: string | null) {
@@ -136,23 +162,26 @@ export function canChooseAssociationMode(
 export function decodeAuthUser(token: string): AuthUser | null {
   const payload = parseJwtPayload(token);
   if (!payload || isExpiredPayload(payload)) return null;
+  const systemRole = stringClaim(payload, 'systemRole', 'system_role');
+  const associationId = stringClaim(payload, 'associationId', 'association_id');
+  const schema = stringClaim(payload, 'schema', 'schemaName', 'schema_name');
   const platformSystemAdmin =
     payload.isTechy8Admin === true ||
-    (normalizeRole(payload.systemRole) === 'SYSTEM_ADMIN' && !(payload.associationId && payload.schema && payload.schema !== 'public'));
+    (normalizeRole(systemRole) === 'SYSTEM_ADMIN' && !(associationId && schema && schema !== 'public'));
 
   return {
     email: payload.sub,
     fullName: payload.fullName || payload.sub,
-    associationRole: payload.associationRole,
-    systemRole: payload.systemRole,
-    associationType: platformSystemAdmin ? undefined : payload.associationType,
-    associationName: platformSystemAdmin ? undefined : payload.associationName,
-    userId: payload.userId,
+    associationRole: stringClaim(payload, 'associationRole', 'association_role'),
+    systemRole,
+    associationType: platformSystemAdmin ? undefined : associationTypeClaim(payload),
+    associationName: platformSystemAdmin ? undefined : stringClaim(payload, 'associationName', 'association_name'),
+    userId: stringClaim(payload, 'userId', 'user_id', 'id'),
     isTechy8Admin: payload.isTechy8Admin,
     impersonatedBy: payload.impersonatedBy,
     firstLogin: payload.firstLogin,
-    associationId: platformSystemAdmin ? undefined : payload.associationId,
-    schema: payload.schema,
+    associationId: platformSystemAdmin ? undefined : associationId,
+    schema,
     roles: Array.isArray(payload.roles) ? payload.roles : [],
     permissions: Array.isArray(payload.permissions) ? payload.permissions : [],
   };

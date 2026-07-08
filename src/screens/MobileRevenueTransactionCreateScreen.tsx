@@ -14,6 +14,7 @@ import {
 import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isGenericAssociation } from '@/auth/association-type';
 import {
   MobileAmountInput,
   MobileButton,
@@ -481,7 +482,7 @@ export default function MobileRevenueTransactionCreateScreen() {
 }
 
 function defaultPaymentType(associationType?: string | null) {
-  return associationType === 'GENERIC' ? 'MEMBERSHIP_FEE' : 'SHARE_PURCHASE';
+  return isGenericAssociation(associationType) ? 'MEMBERSHIP_FEE' : 'SHARE_PURCHASE';
 }
 
 function defaultDateTime() {
