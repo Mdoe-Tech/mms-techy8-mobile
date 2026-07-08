@@ -54,11 +54,30 @@ export type MobileReportExportOptions<T> = {
   emptyMessage?: string;
 };
 
-type PreparedMobileReportFile = {
+export type PreparedMobileReportFile = {
   uri: string;
   fileName: string;
   mimeType: string;
   uti: string;
+};
+
+export type MobilePreparedReportDescriptor = {
+  title: string;
+  fileName?: string;
+};
+
+export type MobileCustomPdfPage = 'landscape' | 'portrait';
+
+export type MobileExcelCell = {
+  value: unknown;
+  style?: 'Title' | 'Subtitle' | 'Text' | 'MetaLabel' | 'MetaValue' | 'Header' | 'Cell' | 'CellStrong' | 'CellRight';
+  mergeAcross?: number;
+};
+
+export type MobileExcelWorksheet = {
+  name: string;
+  columns?: number[];
+  rows: (unknown | MobileExcelCell)[][];
 };
 
 type AndroidReportDownloadsModule = {
@@ -84,6 +103,75 @@ export async function exportMobileReport<T>(
   if (destination === 'save') {
     return saveReportFile(options, reportFile, format);
   }
+
+  await shareReportFile(options, reportFile);
+  return {
+    uri: reportFile.uri,
+    format,
+    destination,
+    fileName: reportFile.fileName,
+    mimeType: reportFile.mimeType,
+  };
+}
+
+export async function createCustomPdfReportFile(
+  descriptor: MobilePreparedReportDescriptor,
+  html: string,
+  page: MobileCustomPdfPage = 'landscape',
+): Promise<PreparedMobileReportFile> {
+  const result = await Print.printToFileAsync({
+    html,
+    width: page === 'portrait' ? A4_LANDSCAPE_HEIGHT_PT : A4_LANDSCAPE_WIDTH_PT,
+    height: page === 'portrait' ? A4_LANDSCAPE_WIDTH_PT : A4_LANDSCAPE_HEIGHT_PT,
+    base64: false,
+    textZoom: 100,
+  });
+  const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+  if (!directory) throw new Error('This device cannot create report files right now.');
+
+  const fileUri = `${directory}${safeFileName(descriptor.fileName || descriptor.title)}-${dateStamp()}.pdf`;
+  await FileSystem.copyAsync({ from: result.uri, to: fileUri });
+
+  return {
+    uri: fileUri,
+    fileName: fileNameFromUri(fileUri),
+    mimeType: 'application/pdf',
+    uti: 'com.adobe.pdf',
+  };
+}
+
+export async function createCustomExcelWorkbookReportFile(
+  descriptor: MobilePreparedReportDescriptor,
+  worksheets: MobileExcelWorksheet[],
+): Promise<PreparedMobileReportFile> {
+  const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+  if (!directory) throw new Error('This device cannot create report files right now.');
+
+  const fileUri = `${directory}${safeFileName(descriptor.fileName || descriptor.title)}-${dateStamp()}.xls`;
+  await FileSystem.writeAsStringAsync(fileUri, buildExcelWorkbookXml(worksheets));
+
+  return {
+    uri: fileUri,
+    fileName: fileNameFromUri(fileUri),
+    mimeType: 'application/vnd.ms-excel',
+    uti: 'com.microsoft.excel.xls',
+  };
+}
+
+export async function deliverPreparedMobileReportFile(
+  descriptor: MobilePreparedReportDescriptor,
+  reportFile: PreparedMobileReportFile,
+  format: MobileReportExportFormat,
+  destination: MobileReportExportDestination = 'save',
+) {
+  const options: MobileReportExportOptions<unknown> = {
+    title: descriptor.title,
+    fileName: descriptor.fileName,
+    rows: [],
+    columns: [],
+  };
+
+  if (destination === 'save') return saveReportFile(options, reportFile, format);
 
   await shareReportFile(options, reportFile);
   return {
@@ -668,6 +756,83 @@ function buildExcelXml<T>(options: MobileReportExportOptions<T>) {
     </Table>
   </Worksheet>
 </Workbook>`;
+}
+
+function buildExcelWorkbookXml(worksheets: MobileExcelWorksheet[]) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:x="urn:schemas-microsoft-com:office:excel"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:html="http://www.w3.org/TR/REC-html40">
+  ${excelStylesXml()}
+  ${worksheets.map(renderExcelWorksheet).join('\n  ')}
+</Workbook>`;
+}
+
+function renderExcelWorksheet(worksheet: MobileExcelWorksheet) {
+  const columnCount = Math.max(1, worksheet.columns?.length || Math.max(...worksheet.rows.map((row) => row.length), 1));
+  const columns = Array.from({ length: columnCount }, (_, index) => worksheet.columns?.[index] || 110);
+  return `<Worksheet ss:Name="${escapeXml(safeWorksheetName(worksheet.name))}">
+    <Table>
+      ${columns.map((width) => `<Column ss:AutoFitWidth="0" ss:Width="${width}"/>`).join('\n      ')}
+      ${worksheet.rows.map((row) => excelRow(row.map(renderExcelCell))).join('\n      ')}
+    </Table>
+  </Worksheet>`;
+}
+
+function renderExcelCell(cell: unknown | MobileExcelCell) {
+  if (cell && typeof cell === 'object' && 'value' in (cell as MobileExcelCell)) {
+    const typedCell = cell as MobileExcelCell;
+    return excelCell(typedCell.value, typedCell.style || 'Cell', typedCell.mergeAcross);
+  }
+  return excelCell(cell, 'Cell');
+}
+
+function excelStylesXml() {
+  return `<Styles>
+    <Style ss:ID="Default" ss:Name="Normal">
+      <Alignment ss:Vertical="Center" ss:WrapText="1"/>
+      <Font ss:FontName="Quicksand" ss:Size="10" ss:Color="#111827"/>
+    </Style>
+    <Style ss:ID="Title">
+      <Font ss:FontName="Quicksand" ss:Size="20" ss:Bold="1" ss:Color="#0F172A"/>
+    </Style>
+    <Style ss:ID="Subtitle">
+      <Font ss:FontName="Quicksand" ss:Size="12" ss:Bold="1" ss:Color="#334155"/>
+    </Style>
+    <Style ss:ID="Text">
+      <Font ss:FontName="Quicksand" ss:Size="10" ss:Color="#475569"/>
+    </Style>
+    <Style ss:ID="MetaLabel">
+      <Font ss:FontName="Quicksand" ss:Size="10" ss:Bold="1" ss:Color="#64748B"/>
+      <Interior ss:Color="#F8FAFC" ss:Pattern="Solid"/>
+    </Style>
+    <Style ss:ID="MetaValue">
+      <Font ss:FontName="Quicksand" ss:Size="10" ss:Bold="1" ss:Color="#111827"/>
+      <Interior ss:Color="#F8FAFC" ss:Pattern="Solid"/>
+    </Style>
+    <Style ss:ID="Header">
+      <Alignment ss:Vertical="Center" ss:WrapText="1"/>
+      <Font ss:FontName="Quicksand" ss:Size="10" ss:Bold="1" ss:Color="#FFFFFF"/>
+      <Interior ss:Color="#0F172A" ss:Pattern="Solid"/>
+      <Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#0F172A"/></Borders>
+    </Style>
+    <Style ss:ID="Cell">
+      <Alignment ss:Vertical="Top" ss:WrapText="1"/>
+      <Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E5E7EB"/></Borders>
+    </Style>
+    <Style ss:ID="CellStrong">
+      <Alignment ss:Vertical="Top" ss:WrapText="1"/>
+      <Font ss:FontName="Quicksand" ss:Size="10" ss:Bold="1" ss:Color="#111827"/>
+      <Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E5E7EB"/></Borders>
+    </Style>
+    <Style ss:ID="CellRight">
+      <Alignment ss:Horizontal="Right" ss:Vertical="Top" ss:WrapText="1"/>
+      <Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E5E7EB"/></Borders>
+    </Style>
+  </Styles>`;
 }
 
 function reportCellValue<T>(row: T, index: number, column: MobileReportColumn<T>) {

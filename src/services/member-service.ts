@@ -389,6 +389,19 @@ export type MembersStatement = {
   periodSummaries?: Record<string, StatementPeriodSummary> | null;
 };
 
+export type CumulatedSharesReportRow = {
+  memberId?: string | null;
+  membershipNumber?: string | null;
+  memberName?: string | null;
+  totalSharesBroughtForward?: number | string | null;
+  totalSharesBoughtCurrentFinancialYear?: number | string | null;
+  totalSharesUsedToPayLoans?: number | string | null;
+  totalSharesReversedCurrentFinancialYear?: number | string | null;
+  sharesNet?: number | string | null;
+  shareValue?: number | string | null;
+  sharesNetValue?: number | string | null;
+};
+
 type GetMembersOptions = {
   page?: number;
   size?: number;
@@ -639,6 +652,11 @@ export function getAssociationSharesStatement(associationId: string, startDate: 
 export function getAssociationMembersStatement(associationId: string, startDate: string, endDate: string) {
   const query = buildQuery({ startDate, endDate });
   return apiRequest<MembersStatement[]>(`/members/associations/${encodeURIComponent(associationId)}/members-statement?${query}`);
+}
+
+export function getAssociationCumulatedSharesReport(associationId: string, startDate: string, endDate: string) {
+  const query = buildQuery({ startDate, endDate });
+  return apiRequest<CumulatedSharesReportRow[]>(`/members/associations/${encodeURIComponent(associationId)}/cumulated-shares-report?${query}`);
 }
 
 export async function getAllAssociationMembers(associationId: string, options: Omit<GetMembersOptions, 'page'> = {}) {

@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import {
   Banknote,
   CalendarRange,
+  Download,
   FileSpreadsheet,
   Hash,
   ListChecks,
@@ -37,7 +38,9 @@ import {
   MobileStatusBadge,
   MobileStatusTabs,
   MobileText,
+  MobileTextInput,
   MobileToast,
+  useMobileFeedback,
 } from '@/components/mobile';
 import AccessDeniedScreen from '@/screens/AccessDeniedScreen';
 import {
@@ -55,6 +58,11 @@ import {
 import { getApiErrorMessage } from '@/types/api';
 import { formatCurrency, formatDate, formatNumber } from '@/utils/format';
 import { labelFromStatus, statusToneFor } from '@/theme/tokens';
+import {
+  exportIndividualStatementReport,
+  type StatementFileFormat,
+  type StatementKind,
+} from '@/utils/mobile-statement-export';
 
 type MobileMemberStatementDetailScreenProps = {
   memberId?: string;
@@ -68,21 +76,27 @@ type PeriodOption = {
 };
 
 type ActiveTab = 'summary' | 'shares' | 'contributions';
+type PeriodFilterType = 'financialYear' | 'customRange' | 'allTime';
 
 const ALL_TIME_VALUE = 'all-time';
 const VERY_EARLY_DATE_TIME = '1900-01-01T00:00:00';
 
 export default function MobileMemberStatementDetailScreen({ memberId }: MobileMemberStatementDetailScreenProps) {
   const { activeView, associationId, user } = useAuth();
+  const { toast } = useMobileFeedback();
   const [member, setMember] = useState<AssociationMember | null>(null);
   const [groupConfig, setGroupConfig] = useState<GroupConfig | null>(null);
   const [periodOptions, setPeriodOptions] = useState<PeriodOption[]>([]);
+  const [filterType, setFilterType] = useState<PeriodFilterType>('financialYear');
   const [selectedPeriod, setSelectedPeriod] = useState('');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [sharesStatement, setSharesStatement] = useState<SharesStatement | null>(null);
   const [membersStatement, setMembersStatement] = useState<MembersStatement | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingStatements, setLoadingStatements] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>('summary');
@@ -94,7 +108,12 @@ export default function MobileMemberStatementDetailScreen({ memberId }: MobileMe
   const statementSource = membersStatement || sharesStatement;
   const memberName = statementSource?.memberName || member?.fullLegalName || 'Member';
   const membershipNumber = statementSource?.membershipNumber || member?.membershipNumber || 'No membership number';
-  const selectedRange = periodOptions.find((option) => option.value === selectedPeriod);
+  const financialYearPeriodOptions = useMemo(() => periodOptions.filter((option) => option.value !== ALL_TIME_VALUE), [periodOptions]);
+  const selectedFinancialYearRange = financialYearPeriodOptions.find((option) => option.value === selectedPeriod) || financialYearPeriodOptions[0] || null;
+  const selectedRange = useMemo(
+    () => resolveStatementPeriod(filterType, selectedFinancialYearRange, customStartDate, customEndDate),
+    [customEndDate, customStartDate, filterType, selectedFinancialYearRange],
+  );
 
   const loadStatements = useCallback(
     async (period: PeriodOption, mode: 'initial' | 'refresh' = 'initial') => {
@@ -267,6 +286,47 @@ export default function MobileMemberStatementDetailScreen({ memberId }: MobileMe
     void loadStatements(selectedRange, 'refresh');
   };
 
+  const runIndividualExport = async (kind: StatementKind, format: StatementFileFormat) => {
+    const statement = kind === 'shares' ? sharesStatement : membersStatement;
+    if (!statement || !selectedRange) {
+      toast.error({
+        title: 'Statement not ready',
+        description: 'Load the statement for a valid period before exporting.',
+      });
+      return;
+    }
+
+    const key = `${kind}-${format}`;
+    setExporting(key);
+    try {
+      await exportIndividualStatementReport({
+        kind,
+        statement,
+        memberId,
+        format,
+        associationName: user?.associationName,
+        groupConfig,
+        periodLabel: selectedRange.label,
+        startDate: selectedRange.startDate,
+        endDate: selectedRange.endDate,
+        destination: 'save',
+      });
+      toast.success({
+        title: 'Statement exported',
+        description: `${kind === 'shares' ? 'Share' : 'Member'} statement ${format.toUpperCase()} saved to your device.`,
+      });
+    } catch (exportError) {
+      const message = getApiErrorMessage(exportError);
+      setError(message);
+      toast.error({
+        title: 'Export failed',
+        description: message,
+      });
+    } finally {
+      setExporting(null);
+    }
+  };
+
   const shareSummary = async () => {
     await Share.share({
       title: 'Nane member statement summary',
@@ -359,17 +419,35 @@ export default function MobileMemberStatementDetailScreen({ memberId }: MobileMe
         {periodOptions.length ? (
           <>
             <MobileSelect
-              label="Period"
-              value={selectedPeriod}
-              options={periodOptions.map((option) => ({ label: option.label, value: option.value }))}
-              onChange={setSelectedPeriod}
+              label="Period type"
+              value={filterType}
+              options={[
+                { label: 'Financial year', value: 'financialYear' },
+                { label: 'Custom dates', value: 'customRange' },
+                { label: 'All time', value: 'allTime' },
+              ]}
+              onChange={(value) => setFilterType(value as PeriodFilterType)}
             />
+            {filterType === 'financialYear' ? (
+              <MobileSelect
+                label="Financial year"
+                value={selectedFinancialYearRange?.value || ''}
+                options={financialYearPeriodOptions.map((option) => ({ label: option.label, value: option.value }))}
+                onChange={setSelectedPeriod}
+              />
+            ) : null}
+            {filterType === 'customRange' ? (
+              <View style={styles.customDateFields}>
+                <MobileTextInput label="Start date" value={customStartDate} onChangeText={setCustomStartDate} placeholder="YYYY-MM-DD" />
+                <MobileTextInput label="End date" value={customEndDate} onChangeText={setCustomEndDate} placeholder="YYYY-MM-DD" />
+              </View>
+            ) : null}
             <MobileInfoRow
               label="Date range"
               value={selectedRange ? `${formatDate(selectedRange.startDate)} - ${formatDate(selectedRange.endDate)}` : 'Not selected'}
-              helper={selectedRange?.value === ALL_TIME_VALUE ? 'All available transactions up to today.' : 'Generated from the association financial year configuration.'}
+              helper={selectedRange?.value === ALL_TIME_VALUE ? 'All available transactions up to today.' : filterType === 'customRange' ? 'Generated from the custom date range.' : 'Generated from the association financial year configuration.'}
               icon={CalendarRange}
-              status={selectedRange?.value === ALL_TIME_VALUE ? 'All time' : 'Financial year'}
+              status={selectedRange?.value === ALL_TIME_VALUE ? 'All time' : filterType === 'customRange' ? 'Custom' : 'Financial year'}
             />
             <View style={styles.actions}>
               <View style={styles.primaryAction}>
@@ -414,6 +492,32 @@ export default function MobileMemberStatementDetailScreen({ memberId }: MobileMe
 
       {statementSource ? (
         <>
+          <MobileFormSection
+            title="Download statements"
+            description="Save the full statements with summaries, transaction rows, and periodic summaries."
+          >
+            {sharesStatement ? (
+              <StatementDownloadCard
+                title="Share Statement"
+                description="Share activity, share value, net shares, transactions, and periodic share summaries."
+                loadingKey={exporting}
+                keyPrefix="shares"
+                onPdf={() => void runIndividualExport('shares', 'pdf')}
+                onExcel={() => void runIndividualExport('shares', 'excel')}
+              />
+            ) : null}
+            {membersStatement ? (
+              <StatementDownloadCard
+                title="Member Statement"
+                description="Comprehensive statement with shares, social contributions, fines, penalties, and loan balance."
+                loadingKey={exporting}
+                keyPrefix="members"
+                onPdf={() => void runIndividualExport('members', 'pdf')}
+                onExcel={() => void runIndividualExport('members', 'excel')}
+              />
+            ) : null}
+          </MobileFormSection>
+
           <MobileStatusTabs
             value={activeTab}
             onChange={(value) => setActiveTab(value as ActiveTab)}
@@ -559,6 +663,36 @@ function toApiDateTime(date: Date, mode: 'start' | 'end') {
   return `${year}-${month}-${day}T${mode === 'start' ? '00:00:00' : '23:59:59'}`;
 }
 
+function resolveStatementPeriod(
+  filterType: PeriodFilterType,
+  selectedFinancialYearRange: PeriodOption | null,
+  customStartDate: string,
+  customEndDate: string,
+): PeriodOption | null {
+  if (filterType === 'allTime') {
+    const today = new Date();
+    return {
+      label: 'All time',
+      value: ALL_TIME_VALUE,
+      startDate: VERY_EARLY_DATE_TIME,
+      endDate: toApiDateTime(today, 'end'),
+    };
+  }
+
+  if (filterType === 'financialYear') return selectedFinancialYearRange;
+
+  const start = parseDate(customStartDate);
+  const end = parseDate(customEndDate);
+  if (!start || !end || start > end) return null;
+
+  return {
+    label: `${formatDate(customStartDate)} to ${formatDate(customEndDate)}`,
+    value: 'custom',
+    startDate: toApiDateTime(start, 'start'),
+    endDate: toApiDateTime(end, 'end'),
+  };
+}
+
 function toNumber(value?: number | string | null) {
   const parsed = Number(value || 0);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -643,6 +777,9 @@ const styles = StyleSheet.create({
     minWidth: 104,
     flexShrink: 1,
   },
+  customDateFields: {
+    gap: 10,
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -650,4 +787,77 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 4,
   },
+  downloadCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  downloadIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+  },
+  downloadText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  downloadActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
 });
+
+function StatementDownloadCard({
+  title,
+  description,
+  loadingKey,
+  keyPrefix,
+  onPdf,
+  onExcel,
+}: {
+  title: string;
+  description: string;
+  loadingKey: string | null;
+  keyPrefix: StatementKind;
+  onPdf: () => void;
+  onExcel: () => void;
+}) {
+  return (
+    <MobileCard compact>
+      <View style={styles.downloadCardHeader}>
+        <View style={styles.downloadIcon}>
+          <FileSpreadsheet color="#ffffff" size={18} strokeWidth={2.5} />
+        </View>
+        <View style={styles.downloadText}>
+          <MobileText variant="body" weight="bold">{title}</MobileText>
+          <MobileText variant="small" tone="secondary">{description}</MobileText>
+        </View>
+      </View>
+      <View style={styles.downloadActions}>
+        <MobileButton
+          label="PDF"
+          icon={Download}
+          size="sm"
+          loading={loadingKey === `${keyPrefix}-pdf`}
+          disabled={Boolean(loadingKey)}
+          onPress={onPdf}
+        />
+        <MobileButton
+          label="Excel"
+          icon={Download}
+          variant="secondary"
+          size="sm"
+          loading={loadingKey === `${keyPrefix}-excel`}
+          disabled={Boolean(loadingKey)}
+          onPress={onExcel}
+        />
+      </View>
+    </MobileCard>
+  );
+}
