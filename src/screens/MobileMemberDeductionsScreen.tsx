@@ -24,6 +24,7 @@ import {
   MobileKpiCard,
   MobileKpiGrid,
   MobileKpiGridItem,
+  MobileListHeaderCard,
   MobileLoadingState,
   MobilePageHeader,
   MobilePageLoadingState,
@@ -378,25 +379,17 @@ export default function MobileMemberDeductionsScreen() {
         }}
       />
 
-      <MobileCard compact>
-        <View style={styles.listHeader}>
-          <View style={styles.flex}>
-            <MobileText variant="section" weight="bold">
-              Deduction history
-            </MobileText>
-            <MobileText variant="small" tone="secondary">
-              Showing {formatNumber(visibleDeductions.length)} of {formatNumber(filteredDeductions.length)} deduction(s).
-            </MobileText>
-            <MobileText variant="tiny" tone="muted">
-              Filters run across all {formatNumber(deductions.length)} loaded deduction records.
-            </MobileText>
-          </View>
-          <View style={styles.headerActions}>
+      <MobileListHeaderCard
+        title="Deduction history"
+        subtitle={`Showing ${formatNumber(visibleDeductions.length)} of ${formatNumber(filteredDeductions.length)} deduction(s).`}
+        meta={`Filters run across all ${formatNumber(deductions.length)} loaded deduction records.`}
+        actions={
+          <>
             <MobileIconButton icon={ArrowDownUp} label="Sort deductions" variant="secondary" onPress={() => setSortOpen(true)} />
             <MobileReportExportButton mode="icon" label="Export deductions" options={deductionReportOptions} onSuccess={(_uri, format) => setNotice(`${format.toUpperCase()} deduction report is ready.`)} onError={(error) => setLoadError(getApiErrorMessage(error))} />
-          </View>
-        </View>
-      </MobileCard>
+          </>
+        }
+      />
 
       {refreshing ? <MobileLoadingState compact message="Refreshing deductions" /> : null}
 
@@ -632,17 +625,6 @@ const styles = StyleSheet.create({
   summaryFooter: {
     flexDirection: 'row',
     gap: 10,
-  },
-  listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   filterFields: {
     gap: 14,

@@ -27,6 +27,7 @@ import {
   MobileKpiCard,
   MobileKpiGrid,
   MobileKpiGridItem,
+  MobileListHeaderCard,
   MobileLoadingState,
   MobilePageHeader,
   MobilePageLoadingState,
@@ -36,7 +37,6 @@ import {
   MobileSheet,
   MobileSortSheet,
   MobileStatusTabs,
-  MobileText,
   MobileTextInput,
 } from '@/components/mobile';
 import { getRouteByPath } from '@/navigation/route-registry';
@@ -355,20 +355,12 @@ export default function MobileMemberRevenueTransactionsScreen() {
         }}
       />
 
-      <MobileCard compact>
-        <View style={styles.listHeader}>
-          <View style={styles.flex}>
-            <MobileText variant="section" weight="bold">
-              Transaction history
-            </MobileText>
-            <MobileText variant="small" tone="secondary">
-              Showing {formatNumber(Math.min(visibleCount, filteredTransactions.length))} of {formatNumber(filteredTransactions.length)} results.
-            </MobileText>
-            <MobileText variant="tiny" tone="muted">
-              Filters run across all {formatNumber(transactions.length)} loaded member transactions.
-            </MobileText>
-          </View>
-          <View style={styles.headerActions}>
+      <MobileListHeaderCard
+        title="Transaction history"
+        subtitle={`Showing ${formatNumber(Math.min(visibleCount, filteredTransactions.length))} of ${formatNumber(filteredTransactions.length)} results.`}
+        meta={`Filters run across all ${formatNumber(transactions.length)} loaded member transactions.`}
+        actions={
+          <>
             <MobileIconButton icon={ArrowDownUp} label="Sort transactions" variant="secondary" onPress={() => setSortOpen(true)} />
             <MobileIconButton
               icon={RefreshCw}
@@ -377,9 +369,9 @@ export default function MobileMemberRevenueTransactionsScreen() {
               disabled={refreshing}
               onPress={() => void loadTransactions('refresh')}
             />
-          </View>
-        </View>
-      </MobileCard>
+          </>
+        }
+      />
 
       {refreshing ? <MobileLoadingState compact message="Refreshing transactions" /> : null}
 
@@ -594,17 +586,6 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
     minWidth: 0,
-  },
-  listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   filterFields: {
     gap: 14,

@@ -15,7 +15,6 @@ import { useAuth } from '@/auth/auth-context';
 import {
   MobileAmountInput,
   MobileButton,
-  MobileCard,
   MobileDataList,
   type MobileDataListItem,
   MobileEmptyState,
@@ -24,6 +23,7 @@ import {
   MobileKpiCard,
   MobileKpiGrid,
   MobileKpiGridItem,
+  MobileListHeaderCard,
   MobileLoadingState,
   MobilePageHeader,
   MobilePageLoadingState,
@@ -435,20 +435,12 @@ export default function MobileRevenueTransactionMemberHistoryScreen() {
             }}
           />
 
-          <MobileCard compact>
-            <View style={styles.listHeader}>
-              <View style={styles.flex}>
-                <MobileText variant="section" weight="bold">
-                  Member ledger
-                </MobileText>
-                <MobileText variant="small" tone="secondary">
-                  Showing {formatNumber(Math.min(visibleCount, filteredTransactions.length))} of {formatNumber(filteredTransactions.length)} results.
-                </MobileText>
-                <MobileText variant="tiny" tone="muted">
-                  Filters run across all {formatNumber(transactions.length)} loaded member transactions.
-                </MobileText>
-              </View>
-              <View style={styles.headerActions}>
+          <MobileListHeaderCard
+            title="Member ledger"
+            subtitle={`Showing ${formatNumber(Math.min(visibleCount, filteredTransactions.length))} of ${formatNumber(filteredTransactions.length)} results.`}
+            meta={`Filters run across all ${formatNumber(transactions.length)} loaded member transactions.`}
+            actions={
+              <>
                 <MobileIconButton icon={ArrowDownUp} label="Sort member transactions" variant="secondary" onPress={() => setSortOpen(true)} />
                 <MobileIconButton
                   icon={RefreshCw}
@@ -457,9 +449,9 @@ export default function MobileRevenueTransactionMemberHistoryScreen() {
                   disabled={refreshing || transactionsLoading}
                   onPress={() => selectedMemberId && void loadMemberData(selectedMemberId, 'refresh')}
                 />
-              </View>
-            </View>
-          </MobileCard>
+              </>
+            }
+          />
 
           {transactionsLoading ? <MobileLoadingState compact message="Loading member transactions" /> : null}
 
@@ -686,17 +678,6 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
     minWidth: 0,
-  },
-  listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   filterFields: {
     gap: 14,

@@ -451,6 +451,8 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
+    marginTop: 10,
   },
 });

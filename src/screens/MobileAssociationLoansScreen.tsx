@@ -33,6 +33,7 @@ import {
   MobileKpiCard,
   MobileKpiGrid,
   MobileKpiGridItem,
+  MobileListHeaderCard,
   MobilePageHeader,
   MobilePageLoadingState,
   MobileReportExportButton,
@@ -470,17 +471,11 @@ export default function MobileAssociationLoansScreen({ initialLoanId }: MobileAs
         {(startDate || endDate) ? <MobileStatusBadge status="Processing" label="Date filtered" tone="warning" /> : null}
       </View>
 
-      <View style={styles.sectionHeader}>
-        <View style={styles.flex}>
-          <MobileText variant="section" weight="bold">
-            Loan records
-          </MobileText>
-          <MobileText variant="small" tone="secondary">
-            {visibleLoans.length} visible of {loans.length} loaded loans.
-          </MobileText>
-        </View>
-        {refreshing ? <MobileStatusBadge status="Processing" label="Refreshing" tone="warning" /> : null}
-      </View>
+      <MobileListHeaderCard
+        title="Loan records"
+        subtitle={`${formatNumber(visibleLoans.length)} visible of ${formatNumber(loans.length)} loaded loans.`}
+        actions={refreshing ? <MobileStatusBadge status="Processing" label="Refreshing" tone="warning" /> : null}
+      />
 
       {visibleLoans.length > 0 ? (
         <View style={styles.list}>

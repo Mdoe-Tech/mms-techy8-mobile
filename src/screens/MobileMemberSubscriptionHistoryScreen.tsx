@@ -30,6 +30,7 @@ import {
   MobileKpiCard,
   MobileKpiGrid,
   MobileKpiGridItem,
+  MobileListHeaderCard,
   MobileLoadingState,
   MobilePageHeader,
   MobilePageLoadingState,
@@ -494,25 +495,17 @@ export default function MobileMemberSubscriptionHistoryScreen() {
         }}
       />
 
-      <MobileCard compact>
-        <View style={styles.listHeader}>
-          <View style={styles.flex}>
-            <MobileText variant="section" weight="bold">
-              Transactions
-            </MobileText>
-            <MobileText variant="small" tone="secondary">
-              Showing {formatNumber(visibleSubscriptions.length)} of {formatNumber(filteredSubscriptions.length)} matching subscription record(s).
-            </MobileText>
-            <MobileText variant="tiny" tone="muted">
-              Search, tabs, and sort apply to all {formatNumber(subscriptions.length)} loaded records.
-            </MobileText>
-          </View>
-          <View style={styles.headerActions}>
+      <MobileListHeaderCard
+        title="Transactions"
+        subtitle={`Showing ${formatNumber(visibleSubscriptions.length)} of ${formatNumber(filteredSubscriptions.length)} matching subscription record(s).`}
+        meta={`Search, tabs, and sort apply to all ${formatNumber(subscriptions.length)} loaded records.`}
+        actions={
+          <>
             <MobileIconButton icon={ArrowDownUp} label="Sort records" variant="secondary" onPress={() => setSortOpen(true)} />
             <MobileReportExportButton mode="icon" label="Export history" options={subscriptionReportOptions} onSuccess={(_uri, format) => setNotice({ title: 'Export ready', description: `${format.toUpperCase()} subscription report is ready.`, tone: 'success' })} onError={(error) => setLoadError(getApiErrorMessage(error))} />
-          </View>
-        </View>
-      </MobileCard>
+          </>
+        }
+      />
 
       {refreshing ? <MobileLoadingState compact message="Refreshing subscription history" /> : null}
 
@@ -701,17 +694,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-  },
-  listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   actionsRow: {
     flexDirection: 'row',

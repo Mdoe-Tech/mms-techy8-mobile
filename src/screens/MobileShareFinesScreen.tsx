@@ -27,6 +27,7 @@ import {
   MobileKpiCard,
   MobileKpiGrid,
   MobileKpiGridItem,
+  MobileListHeaderCard,
   MobilePageHeader,
   MobilePageLoadingState,
   MobileReportExportButton,
@@ -471,22 +472,17 @@ export default function MobileShareFinesScreen() {
           <MobileSearchToolbar value={search} onChange={setSearch} placeholder="Search fines..." />
           <MobileStatusTabs tabs={statusTabs} value={statusFilter} onChange={setStatusFilter} />
 
-          <MobileCard compact>
-            <View style={styles.listHeader}>
-              <View style={styles.flex}>
-                <MobileText variant="section" weight="bold">
-                  Share fine register
-                </MobileText>
-                <MobileText variant="small" tone="secondary">
-                  {formatNumber(visibleFines.length)} of {formatNumber(fines.length)} records · {scopeLabel}
-                </MobileText>
-              </View>
-              <View style={styles.headerActions}>
+          <MobileListHeaderCard
+            title="Share fine register"
+            subtitle={`${formatNumber(visibleFines.length)} of ${formatNumber(fines.length)} records`}
+            meta={scopeLabel}
+            actions={
+              <>
                 <MobileIconButton icon={ArrowDownUp} label="Sort fines" variant="secondary" onPress={() => setSortOpen(true)} />
                 <MobileReportExportButton mode="icon" label="Export fines" options={fineReportOptions} disabled={!visibleFines.length || working} onError={(exportError) => setWorkError(getApiErrorMessage(exportError))} />
-              </View>
-            </View>
-          </MobileCard>
+              </>
+            }
+          />
 
           {listItems.length ? (
             <MobileDataList items={listItems} showChevron={false} />
@@ -638,19 +634,8 @@ const styles = StyleSheet.create({
   actionGrid: {
     gap: 10,
   },
-  listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
   flex: {
     flex: 1,
     minWidth: 0,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
 });

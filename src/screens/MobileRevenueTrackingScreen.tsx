@@ -29,6 +29,7 @@ import {
   MobileKpiCard,
   MobileKpiGrid,
   MobileKpiGridItem,
+  MobileListHeaderCard,
   MobilePageHeader,
   MobilePageLoadingState,
   MobileScreen,
@@ -359,22 +360,16 @@ export default function MobileRevenueTrackingScreen() {
         }}
       />
 
-      <MobileCard compact>
-        <View style={styles.listHeader}>
-          <View style={styles.flex}>
-            <MobileText variant="section" weight="bold">
-              {activeTitle}
-            </MobileText>
-            <MobileText variant="small" tone="secondary">
-              Showing {formatNumber(Math.min(visibleCount, activeRows.length))} of {formatNumber(activeRows.length)} records.
-            </MobileText>
-          </View>
-          <View style={styles.headerActions}>
+      <MobileListHeaderCard
+        title={activeTitle}
+        subtitle={`Showing ${formatNumber(Math.min(visibleCount, activeRows.length))} of ${formatNumber(activeRows.length)} records.`}
+        actions={
+          <>
             <MobileIconButton icon={ArrowDownUp} label="Sort revenue register" variant="secondary" onPress={() => setSortOpen(true)} />
             <MobileIconButton icon={RefreshCw} label="Refresh revenue tracking" variant="secondary" disabled={refreshing} onPress={() => void loadData('refresh')} />
-          </View>
-        </View>
-      </MobileCard>
+          </>
+        }
+      />
 
       {listItems.length ? (
         <MobileDataList
@@ -601,16 +596,5 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
     minWidth: 0,
-  },
-  listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
 });

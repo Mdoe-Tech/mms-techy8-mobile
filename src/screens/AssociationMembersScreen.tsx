@@ -1,12 +1,10 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, UserPlus, UsersRound } from 'lucide-react-native';
-import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
 import {
   MobileButton,
-  MobileCard,
   MobileDataList,
   type MobileDataListItem,
   MobileEmptyState,
@@ -15,6 +13,7 @@ import {
   MobileKpiCard,
   MobileKpiGrid,
   MobileKpiGridItem,
+  MobileListHeaderCard,
   MobilePageHeader,
   MobilePageLoadingState,
   MobileReportExportButton,
@@ -23,7 +22,6 @@ import {
   MobileSortSheet,
   MobileStatusBadge,
   MobileStatusTabs,
-  MobileText,
 } from '@/components/mobile';
 import { getRouteByPath } from '@/navigation/route-registry';
 import { getAllAssociationMembers, type AssociationMember } from '@/services/member-service';
@@ -298,17 +296,11 @@ export default function AssociationMembersScreen() {
 
       <MobileStatusTabs tabs={statusTabs} value={status} onChange={(value) => setStatus(value as MemberStatusFilter)} />
 
-      <MobileCard compact>
-        <View style={styles.listHeader}>
-          <View style={styles.listHeaderText}>
-            <MobileText variant="section" weight="bold">
-              Member registry
-            </MobileText>
-            <MobileText variant="small" tone="secondary">
-              Showing {formatNumber(Math.min(visibleCount, filteredMembers.length))} of {formatNumber(filteredMembers.length)} matching members.
-            </MobileText>
-          </View>
-          <View style={styles.headerActions}>
+      <MobileListHeaderCard
+        title="Member registry"
+        subtitle={`Showing ${formatNumber(Math.min(visibleCount, filteredMembers.length))} of ${formatNumber(filteredMembers.length)} matching members.`}
+        actions={
+          <>
             <MobileReportExportButton mode="icon" label="Export members" options={memberReportOptions} onError={(exportError) => setError(getApiErrorMessage(exportError))} />
             <MobileIconButton
               icon={RefreshCw}
@@ -317,9 +309,9 @@ export default function AssociationMembersScreen() {
               disabled={refreshing}
               onPress={() => void loadMembers('refresh')}
             />
-          </View>
-        </View>
-      </MobileCard>
+          </>
+        }
+      />
 
       {listItems.length ? (
         <MobileDataList
@@ -415,21 +407,3 @@ function statusTone(status?: string | null): MobileDataListItem['accent'] {
   if (normalized === 'SUSPENDED' || normalized === 'INACTIVE' || normalized === 'REJECTED') return 'danger';
   return 'neutral';
 }
-
-const styles = StyleSheet.create({
-  listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  listHeaderText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-});

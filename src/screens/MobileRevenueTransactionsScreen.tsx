@@ -16,7 +16,6 @@ import { useAuth } from '@/auth/auth-context';
 import {
   MobileAmountInput,
   MobileButton,
-  MobileCard,
   MobileDataList,
   type MobileDataListItem,
   MobileEmptyState,
@@ -25,6 +24,7 @@ import {
   MobileKpiCard,
   MobileKpiGrid,
   MobileKpiGridItem,
+  MobileListHeaderCard,
   MobilePageHeader,
   MobilePageLoadingState,
   MobileReportExportButton,
@@ -35,7 +35,6 @@ import {
   MobileSortSheet,
   MobileStatusBadge,
   MobileStatusTabs,
-  MobileText,
   MobileTextInput,
 } from '@/components/mobile';
 import { getRouteByPath } from '@/navigation/route-registry';
@@ -379,20 +378,12 @@ export default function MobileRevenueTransactionsScreen() {
         }}
       />
 
-      <MobileCard compact>
-        <View style={styles.listHeader}>
-          <View style={styles.listHeaderText}>
-            <MobileText variant="section" weight="bold">
-              Transaction ledger
-            </MobileText>
-            <MobileText variant="small" tone="secondary">
-              Showing {formatNumber(Math.min(visibleCount, filteredTransactions.length))} of {formatNumber(filteredTransactions.length)} results.
-            </MobileText>
-            <MobileText variant="tiny" tone="muted">
-              Loaded {formatNumber(transactions.length)} of {formatNumber(serverTotal || transactions.length)} records for full-list filtering.
-            </MobileText>
-          </View>
-          <View style={styles.headerActions}>
+      <MobileListHeaderCard
+        title="Transaction ledger"
+        subtitle={`Showing ${formatNumber(Math.min(visibleCount, filteredTransactions.length))} of ${formatNumber(filteredTransactions.length)} results.`}
+        meta={`Loaded ${formatNumber(transactions.length)} of ${formatNumber(serverTotal || transactions.length)} records for full-list filtering.`}
+        actions={
+          <>
             <MobileReportExportButton mode="icon" label="Export report" options={transactionReportOptions} onError={(exportError) => setError(getApiErrorMessage(exportError))} />
             <MobileIconButton icon={ArrowDownUp} label="Sort transactions" variant="secondary" onPress={() => setSortOpen(true)} />
             <MobileIconButton
@@ -402,9 +393,9 @@ export default function MobileRevenueTransactionsScreen() {
               disabled={refreshing}
               onPress={() => void loadTransactions('refresh')}
             />
-          </View>
-        </View>
-      </MobileCard>
+          </>
+        }
+      />
 
       {listItems.length ? (
         <MobileDataList
@@ -590,22 +581,6 @@ function parseAmountFilter(value: string) {
 }
 
 const styles = StyleSheet.create({
-  listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  listHeaderText: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   filterFields: {
     gap: 14,
   },
