@@ -70,7 +70,6 @@ export default function MobileVefdReceiptsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortValue, setSortValue] = useState<SortOption>('dateDesc');
@@ -227,7 +226,6 @@ export default function MobileVefdReceiptsScreen() {
       />
 
       {error ? <MobileStatusBadge status="VEFD issue" label={error} tone="danger" /> : null}
-      {notice ? <MobileStatusBadge status="Completed" label={notice} tone="success" /> : null}
 
       <MobileKpiGrid>
         <MobileKpiGridItem>

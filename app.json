@@ -59,14 +59,17 @@
           "defaultChannel": "nane-default"
         }
       ],
-      "./plugins/with-nane-report-downloads"
+      "./plugins/with-nane-report-downloads",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "extra": {
-      "naneApiBaseUrl": "https://test-app.nane.co.tz/api/v1",
+      "naneApiBaseUrl": "https://app.nane.co.tz/api/v1",
       "nanePushDeviceRegistrationPath": "/mobile/push/devices",
       "nanePushDeviceUnregistrationPath": "/mobile/push/devices/unregister"
     }

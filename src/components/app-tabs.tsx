@@ -6,12 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useNaneTheme } from '@/theme/tokens';
 
-const primaryTabs: Array<{
+const primaryTabs: {
   name: string;
   href: string;
   label: string;
   icon: LucideIcon;
-}> = [
+}[] = [
   { name: 'index', href: '/', label: 'Home', icon: House },
   { name: 'work', href: '/work', label: 'Work', icon: BriefcaseBusiness },
   { name: 'search', href: '/search', label: 'Search', icon: Search },

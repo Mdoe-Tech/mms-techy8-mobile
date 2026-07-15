@@ -1,5 +1,5 @@
 import { Download, FileSpreadsheet, FileText, Share2, Table2 } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import {
   exportMobileReport,
@@ -46,7 +46,7 @@ export function MobileReportExportButton<T>({
   const isBusy = Boolean(workingFormat);
   const isDisabled = disabled || isBusy || options.rows.length === 0;
 
-  const runExport = async (format: MobileReportExportFormat, destination: MobileReportExportDestination) => {
+  const runExport = useCallback(async (format: MobileReportExportFormat, destination: MobileReportExportDestination) => {
     if (isBusy || isDisabled) return;
     setWorkingFormat(format);
     try {
@@ -70,12 +70,12 @@ export function MobileReportExportButton<T>({
     } finally {
       setWorkingFormat(null);
     }
-  };
+  }, [isBusy, isDisabled, onError, onSuccess, options, prepareOptions, toast]);
 
-  const chooseFormat = (format: MobileReportExportFormat) => {
+  const chooseFormat = useCallback((format: MobileReportExportFormat) => {
     setSelectedFormat(format);
     setDestinationOpen(true);
-  };
+  }, []);
 
   const actions = useMemo<MobileActionSheetAction[]>(
     () => [
@@ -101,7 +101,7 @@ export function MobileReportExportButton<T>({
         onPress: () => chooseFormat('csv'),
       },
     ],
-    [isBusy, isDisabled],
+    [chooseFormat],
   );
 
   const destinationActions = useMemo<MobileActionSheetAction[]>(
@@ -125,7 +125,7 @@ export function MobileReportExportButton<T>({
         },
       },
     ],
-    [selectedFormat, isBusy, isDisabled, prepareOptions, options],
+    [runExport, selectedFormat],
   );
 
   return (

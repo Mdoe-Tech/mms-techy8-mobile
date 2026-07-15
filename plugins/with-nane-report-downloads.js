@@ -6,6 +6,7 @@ const {
   withAndroidManifest,
   withAppBuildGradle,
   withDangerousMod,
+  withGradleProperties,
   withMainApplication,
 } = require('expo/config-plugins');
 
@@ -13,6 +14,20 @@ const PLUGIN_NAME = 'with-nane-report-downloads';
 const REPORT_PACKAGE_CLASS = 'NaneReportDownloadsPackage';
 
 function withNaneReportDownloads(config) {
+  config = withGradleProperties(config, (modConfig) => {
+    const key = 'org.gradle.jvmargs';
+    const value = '-Xmx2048m -XX:MaxMetaspaceSize=1024m';
+    const existing = modConfig.modResults.find(
+      (entry) => entry.type === 'property' && entry.key === key,
+    );
+    if (existing) {
+      existing.value = value;
+    } else {
+      modConfig.modResults.push({ type: 'property', key, value });
+    }
+    return modConfig;
+  });
+
   config = withAndroidManifest(config, (modConfig) => {
     const manifest = modConfig.modResults;
     const permissions = manifest.manifest['uses-permission'] || [];
@@ -103,4 +118,4 @@ async function copyResource(destinationDir, fileName) {
   await fs.promises.copyFile(sourcePath, destinationPath);
 }
 
-module.exports = createRunOncePlugin(withNaneReportDownloads, PLUGIN_NAME, '1.0.0');
+module.exports = createRunOncePlugin(withNaneReportDownloads, PLUGIN_NAME, '1.0.1');

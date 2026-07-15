@@ -103,11 +103,13 @@ The app reads the API base URL in this order:
 3. `expo.extra.naneApiBaseUrl` in `app.json`
 4. Fallback from `src/config/env.ts`
 
-Current `app.json` points to:
+Production builds and the committed `app.json` default point to:
 
 ```text
-https://test-app.nane.co.tz/api/v1
+https://app.nane.co.tz/api/v1
 ```
+
+The `development` and `preview` profiles in `eas.json` explicitly point to the test API. The `production` profile explicitly points to the production API.
 
 Example local override:
 
@@ -177,25 +179,26 @@ npx expo prebuild --platform ios
 
 The generated `ios/` and `android/` folders are ignored by Git in this repo.
 
-## Build Android APK
+## Build Android App Bundle
 
 After prebuild:
 
 ```bash
 cd android
-./gradlew assembleRelease
+./gradlew bundleRelease
 ```
 
-APK output:
+App Bundle output:
 
 ```text
-android/app/build/outputs/apk/release/app-release.apk
+android/app/build/outputs/bundle/release/app-release.aab
 ```
 
-Local convenience copy:
+For a locally installable APK instead, run `./gradlew assembleRelease`. Signed store builds should use the production EAS profile:
 
-```bash
-cp android/app/build/outputs/apk/release/app-release.apk ~/Desktop/Nane.apk
+```text
+eas build --platform android --profile production
+eas build --platform ios --profile production
 ```
 
 ## Quality Checks
