@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation, isVikobaAssociation } from '@/auth/association-type';
 import {
   MobileAmountInput,
   MobileButton,
@@ -125,6 +126,7 @@ export default function MobileLoanRequestScreen({ initialMemberId, mode = 'admin
   const [guarantorSearch, setGuarantorSearch] = useState('');
 
   const groupConfig = configs[0] || null;
+  const isSaccos = isSaccosAssociation(user?.associationType) || eligibility?.qualificationBasis === 'SAVINGS';
 
   const loadBaseData = useCallback(
     async (mode: 'initial' | 'refresh' = 'initial') => {
@@ -227,10 +229,15 @@ export default function MobileLoanRequestScreen({ initialMemberId, mode = 'admin
 
   const selectedMember = useMemo(() => members.find((member) => member.id === memberId), [memberId, members]);
   const amountValue = toAmount(amount);
-  const shareValue = useMemo(() => sumShareValue(eligibility), [eligibility]);
+  const qualificationBalance = useMemo(
+    () => eligibility?.qualificationBalance !== null && eligibility?.qualificationBalance !== undefined
+      ? toAmount(eligibility.qualificationBalance)
+      : sumShareValue(eligibility),
+    [eligibility],
+  );
   const loanMultiplier = toAmount(groupConfig?.loanMultiplier);
   const outstandingBalance = useMemo(() => getOutstandingBalance(memberLoans), [memberLoans]);
-  const maxLoan = shareValue * loanMultiplier;
+  const maxLoan = qualificationBalance * loanMultiplier;
   const remainingEligibility = Math.max(0, maxLoan - outstandingBalance);
   const activeLoanCount = memberLoans.filter((loan) => isActiveLoanStatus(loan.status)).length;
   const suggestedPeriod = useMemo(
@@ -432,7 +439,7 @@ export default function MobileLoanRequestScreen({ initialMemberId, mode = 'admin
     return <AccessDeniedScreen title="New loan request" description="This native page is available for association admin workspaces only." />;
   }
 
-  if (isMemberMode && user?.associationType && user.associationType !== 'VIKOBA') {
+  if (isMemberMode && user?.associationType && !isVikobaAssociation(user.associationType) && !isSaccosAssociation(user.associationType)) {
     return (
       <MobileScreen>
         <MobilePageHeader
@@ -443,8 +450,8 @@ export default function MobileLoanRequestScreen({ initialMemberId, mode = 'admin
           onBack={() => router.back()}
         />
         <MobileEmptyState
-          title="Loan requests are for VIKOBA members"
-          description="This association does not use the VIKOBA loan lifecycle."
+          title="Loan requests are not enabled"
+          description="Loan requests are available to VIKOBA and SACCOS members."
           actionLabel="Back"
           onAction={() => router.back()}
         />
@@ -495,7 +502,7 @@ export default function MobileLoanRequestScreen({ initialMemberId, mode = 'admin
             />
           </MobileKpiGridItem>
           <MobileKpiGridItem>
-            <MobileKpiCard title="Share value" value={formatCurrency(shareValue)} description={`${formatNumber(loanMultiplier || 0)}x multiplier`} tone="green" icon={WalletCards} />
+            <MobileKpiCard title={isSaccos ? 'Paid savings' : 'Share value'} value={formatCurrency(qualificationBalance)} description={`${formatNumber(loanMultiplier || 0)}x multiplier`} tone="green" icon={WalletCards} />
           </MobileKpiGridItem>
           <MobileKpiGridItem>
             <MobileKpiCard title="Maximum loan" value={formatCurrency(maxLoan)} description="Based on group rules" tone="purple" icon={Landmark} />
@@ -521,7 +528,7 @@ export default function MobileLoanRequestScreen({ initialMemberId, mode = 'admin
           icon={remainingEligibility > 0 ? CheckCircle2 : AlertTriangle}
           footer={
             <View style={styles.infoGrid}>
-              <MobileInfoRow label="Share value" value={formatCurrency(shareValue)} helper={`${formatNumber(loanMultiplier || 0)}x multiplier gives ${formatCurrency(maxLoan)} max`} icon={WalletCards} />
+              <MobileInfoRow label={isSaccos ? 'Paid savings' : 'Share value'} value={formatCurrency(qualificationBalance)} helper={`${formatNumber(loanMultiplier || 0)}x multiplier gives ${formatCurrency(maxLoan)} max`} icon={WalletCards} />
               <MobileInfoRow label="Group rule" value={groupConfig?.name || 'Not configured'} helper={suggestedPeriod ? `${suggestedPeriod} month suggested period` : 'No matching repayment rule'} icon={ShieldCheck} />
               <MobileInfoRow label="Previous loans" value={String(memberLoans.length)} helper={`${activeLoanCount} active loan(s) considered in the estimate`} icon={Landmark} />
             </View>

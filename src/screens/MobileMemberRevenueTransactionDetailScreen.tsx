@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation } from '@/auth/association-type';
 import {
   MobileButton,
   MobileCard,
@@ -52,6 +53,7 @@ type MobileMemberRevenueTransactionDetailScreenProps = {
 
 export default function MobileMemberRevenueTransactionDetailScreen({ transactionId }: MobileMemberRevenueTransactionDetailScreenProps) {
   const { activeView, user } = useAuth();
+  const isSaccos = isSaccosAssociation(user?.associationType);
   const theme = useNaneTheme();
   const userId = user?.userId;
   const [member, setMember] = useState<AssociationMember | null>(null);
@@ -232,9 +234,11 @@ export default function MobileMemberRevenueTransactionDetailScreen({ transaction
         <MobileKpiGridItem>
           <MobileKpiCard title="Payment lines" value={formatNumber(paymentEntries.length)} description="Breakdown items" tone="blue" icon={ReceiptText} />
         </MobileKpiGridItem>
-        <MobileKpiGridItem>
-          <MobileKpiCard title="Shares" value={formatNumber(transaction.shareCount || 0)} description={formatTzs(Number(transaction.totalShareValue || 0))} tone="green" icon={ShieldCheck} />
-        </MobileKpiGridItem>
+        {Number(transaction.paymentDetails?.SHARE_PURCHASE || 0) > 0 || Number(transaction.shareCount || 0) > 0 ? (
+          <MobileKpiGridItem>
+            <MobileKpiCard title={isSaccos ? 'Equity shares' : 'Shares'} value={formatNumber(transaction.shareCount || 0)} description={formatTzs(Number(transaction.totalShareValue || 0))} tone="green" icon={ShieldCheck} />
+          </MobileKpiGridItem>
+        ) : null}
       </MobileKpiGrid>
 
       <MobileCard compact>

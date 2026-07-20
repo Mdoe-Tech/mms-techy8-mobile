@@ -199,7 +199,7 @@ const billingTabs: { value: BillingTab; label: string }[] = [
 const billingCycles: NaneBillingCycle[] = ['MONTHLY', 'QUARTERLY', 'SEMI_ANNUAL', 'ANNUAL'];
 const subscriptionStatuses: AssociationBillingSubscriptionStatus[] = ['TRIALING', 'ACTIVE', 'PAST_DUE', 'SUSPENDED', 'CANCELLED', 'EXPIRED'];
 const invoiceStatuses: ('ALL' | NaneBillingInvoiceStatus)[] = ['ALL', 'ISSUED', 'PAID', 'OVERDUE', 'DRAFT', 'CANCELLED'];
-const associationTypes = ['ALL', 'GENERIC', 'VIKOBA', 'UNION'];
+const associationTypes = ['ALL', 'GENERIC', 'VIKOBA', 'SACCOS', 'UNION'];
 
 const emptyPlanForm: PlanForm = {
   planCode: '',

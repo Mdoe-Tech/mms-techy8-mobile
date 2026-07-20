@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation } from '@/auth/association-type';
 import {
   MobileAmountInput,
   MobileButton,
@@ -58,7 +59,7 @@ const MEMBER_LOAD_COUNT = 5;
 const INITIAL_VISIBLE_COUNT = 12;
 const LOAD_MORE_COUNT = 12;
 
-const paymentTypeOptions = [
+const vikobaPaymentTypeOptions = [
   { label: 'All payment types', value: 'all' },
   { label: 'Share purchase', value: 'SHARE_PURCHASE' },
   { label: 'Social contribution', value: 'SOCIAL_CONTRIBUTION' },
@@ -79,7 +80,17 @@ const sortOptions = [
 ];
 
 export default function MobileRevenueTransactionMemberHistoryScreen() {
-  const { activeView, associationId } = useAuth();
+  const { activeView, associationId, user } = useAuth();
+  const paymentTypeOptions = useMemo(() => isSaccosAssociation(user?.associationType) ? [
+    { label: 'All payment types', value: 'all' },
+    { label: 'Savings', value: 'SAVINGS' },
+    { label: 'Equity share purchase', value: 'SHARE_PURCHASE' },
+    { label: 'Loan repayment', value: 'LOAN_REPAYMENT' },
+    { label: 'Fine', value: 'FINE' },
+    { label: 'Penalty', value: 'PENALTY' },
+    { label: 'Event registration', value: 'EVENT_REGISTRATION' },
+    { label: 'Subscription', value: 'SUBSCRIPTION' },
+  ] : vikobaPaymentTypeOptions, [user?.associationType]);
   const theme = useNaneTheme();
   const [members, setMembers] = useState<AssociationMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -499,6 +510,7 @@ export default function MobileRevenueTransactionMemberHistoryScreen() {
       <MemberHistoryFilterSheet
         visible={filterOpen}
         paymentType={paymentType}
+        paymentTypeOptions={paymentTypeOptions}
         startDate={startDate}
         endDate={endDate}
         minAmount={minAmount}
@@ -551,6 +563,7 @@ export default function MobileRevenueTransactionMemberHistoryScreen() {
 type MemberHistoryFilterSheetProps = {
   visible: boolean;
   paymentType: string;
+  paymentTypeOptions: { label: string; value: string }[];
   startDate: string;
   endDate: string;
   minAmount: string;
@@ -567,6 +580,7 @@ type MemberHistoryFilterSheetProps = {
 function MemberHistoryFilterSheet({
   visible,
   paymentType,
+  paymentTypeOptions,
   startDate,
   endDate,
   minAmount,

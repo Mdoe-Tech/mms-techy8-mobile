@@ -97,13 +97,14 @@ export default function MemberHomeScreen() {
   );
 
   const isUnionMember = dashboard?.associationType?.toUpperCase() === 'UNION';
+  const isSaccosMember = ['SACCOS', 'SACCO'].includes(dashboard?.associationType?.toUpperCase() || '');
   const primaryActionRoute = isUnionMember ? deductionsRoute : paymentRoute;
-  const primaryActionLabel = isUnionMember ? 'Deductions' : 'Pay shares';
+  const primaryActionLabel = isUnionMember ? 'Deductions' : isSaccosMember ? 'Pay savings' : 'Pay shares';
   const primaryActionIcon = isUnionMember ? WalletCards : CreditCard;
-  const contributionValue = isUnionMember ? dashboard?.unionContributions?.totalAmount : dashboard?.totalContributions;
+  const contributionValue = isUnionMember ? dashboard?.unionContributions?.totalAmount : isSaccosMember ? dashboard?.totalSavings : dashboard?.totalContributions;
   const contributionDescription = isUnionMember
     ? `${formatNumber(dashboard?.unionContributions?.contributionCount ?? 0)} deduction records`
-    : 'Total recorded';
+    : isSaccosMember ? 'Paid savings used for loan eligibility' : 'Total recorded';
 
   if (loading && !dashboard) {
     return <MobilePageLoadingState kind="dashboard" message="Loading member dashboard" />;
@@ -181,7 +182,7 @@ export default function MemberHomeScreen() {
       <MobileKpiGrid>
         <MobileKpiGridItem>
           <MobileKpiCard
-            title={isUnionMember ? 'Deductions' : 'Contributions'}
+            title={isUnionMember ? 'Deductions' : isSaccosMember ? 'Savings' : 'Contributions'}
             value={formatTzs(contributionValue ?? dashboard?.totalSocialContributions ?? 0)}
             description={contributionDescription}
             tone="teal"
@@ -199,9 +200,9 @@ export default function MemberHomeScreen() {
         </MobileKpiGridItem>
         <MobileKpiGridItem>
           <MobileKpiCard
-            title="Shares"
+            title={isSaccosMember ? 'Equity shares' : 'Shares'}
             value={formatTzs(dashboard?.totalShareValue ?? dashboard?.totalSharesBought ?? 0)}
-            description={`${formatNumber(dashboard?.totalSharePurchases ?? 0)} share purchases`}
+            description={isSaccosMember ? `${formatNumber(dashboard?.totalSharesBought ?? 0)} shares for dividends` : `${formatNumber(dashboard?.totalSharePurchases ?? 0)} share purchases`}
             tone="green"
             icon={CreditCard}
           />

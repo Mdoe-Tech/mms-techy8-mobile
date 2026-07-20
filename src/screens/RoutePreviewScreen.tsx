@@ -137,6 +137,8 @@ import MobileShareDistributionScreen from '@/screens/MobileShareDistributionScre
 import MobileShareFinesScreen from '@/screens/MobileShareFinesScreen';
 import MobileShareReconciliationScreen from '@/screens/MobileShareReconciliationScreen';
 import MobileSmsReportScreen from '@/screens/MobileSmsReportScreen';
+import MobileSaccosSavingsCaptureScreen from '@/screens/MobileSaccosSavingsCaptureScreen';
+import MobileSaccosSavingsReportScreen from '@/screens/MobileSaccosSavingsReportScreen';
 import MobileSubscribeMemberScreen from '@/screens/MobileSubscribeMemberScreen';
 import MobileSystemAdminAssociationCreateScreen from '@/screens/MobileSystemAdminAssociationCreateScreen';
 import MobileSystemAdminAssociationsScreen from '@/screens/MobileSystemAdminAssociationsScreen';
@@ -650,6 +652,10 @@ export default function RoutePreviewScreen() {
     return <MobileRevenueTransactionCreateScreen />;
   }
 
+  if (route.path === '/associations/savings/capture') {
+    return <MobileSaccosSavingsCaptureScreen />;
+  }
+
   if (route.path === '/associations/revenue-transactions/batch-create') {
     return <MobileRevenueTransactionImportScreen />;
   }
@@ -772,6 +778,10 @@ export default function RoutePreviewScreen() {
 
   if (route.path === '/associations/reports/statistics') {
     return <MobileAssociationStatisticsReportScreen />;
+  }
+
+  if (route.path === '/associations/reports/saccos-savings') {
+    return <MobileSaccosSavingsReportScreen />;
   }
 
   if (route.path === '/associations/union/reports') {

@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation, isVikobaAssociation } from '@/auth/association-type';
 import {
   MobileAmountInput,
   MobileButton,
@@ -132,6 +133,7 @@ export default function MobileGroupConfigFormScreen({ mode = 'create', configId 
   const listRoute = getRouteByPath('/associations/group-config');
   const detailRoute = getRouteByPath('/associations/group-config/:id');
   const isEdit = mode === 'edit';
+  const isSaccos = isSaccosAssociation(user?.associationType);
   const canSubmit = useMemo(() => hasLoanConfigManagePermission(user), [user]);
 
   const loadConfig = useCallback(async () => {
@@ -214,7 +216,7 @@ export default function MobileGroupConfigFormScreen({ mode = 'create', configId 
 
     setSaving(true);
     try {
-      const payload = buildPayload(form, associationId || '');
+      const payload = buildPayload(form, associationId || '', isSaccos);
       const saved = isEdit && configId ? await updateGroupConfig(configId, payload) : await createGroupConfig(payload);
       setNotice(isEdit ? 'Group configuration updated.' : 'Group configuration created.');
       goToDetail(saved);
@@ -250,8 +252,8 @@ export default function MobileGroupConfigFormScreen({ mode = 'create', configId 
     return <AccessDeniedScreen title="Group configuration" description="Configuration forms are available in association admin workspaces only." />;
   }
 
-  if (String(user?.associationType || '').toUpperCase() !== 'VIKOBA') {
-    return <AccessDeniedScreen title="Group configuration" description="Loan group configuration is available for VIKOBA associations only." />;
+  if (!isVikobaAssociation(user?.associationType) && !isSaccos) {
+    return <AccessDeniedScreen title="Group configuration" description="Loan group configuration is available for VIKOBA and SACCOS associations." />;
   }
 
   if (isEdit && !configId) {
@@ -294,7 +296,7 @@ export default function MobileGroupConfigFormScreen({ mode = 'create', configId 
         showLogo
         eyebrow="Settings"
         title={isEdit ? 'Edit configuration' : 'Create configuration'}
-        subtitle="Shares, loans, fines, and financial-year rules."
+        subtitle={isSaccos ? 'Equity shares, savings-based loans, fines, and financial-year rules.' : 'Shares, loans, fines, and financial-year rules.'}
         onBack={() => goToList(sourceConfig)}
         rightAction={
           <MobileIconButton
@@ -318,7 +320,7 @@ export default function MobileGroupConfigFormScreen({ mode = 'create', configId 
           </View>
           <View style={styles.flex}>
             <MobileText variant="section" weight="bold" numberOfLines={2}>
-              {form.name || 'New VIKOBA ruleset'}
+              {form.name || `New ${isSaccos ? 'SACCOS' : 'VIKOBA'} ruleset`}
             </MobileText>
             <MobileText variant="small" tone="secondary">
               {formatCurrency(previewShareValue)} per share · {formatNumber(previewLoanMultiplier)}x loan multiplier
@@ -328,7 +330,7 @@ export default function MobileGroupConfigFormScreen({ mode = 'create', configId 
         </View>
       </MobileCard>
 
-      <MobileFormSection title="Basic and share settings" description="Name this ruleset and define the member share schedule.">
+      <MobileFormSection title="Basic and equity share settings" description={isSaccos ? 'Define company-like equity shares used for ownership and dividends. Savings are captured separately.' : 'Name this ruleset and define the member share schedule.'}>
         <MobileTextInput
           label="Configuration name *"
           value={form.name}
@@ -347,13 +349,15 @@ export default function MobileGroupConfigFormScreen({ mode = 'create', configId 
           error={submitted ? validation.errors.shareValue : undefined}
           disabled={saving}
         />
-        <MobileSelect
-          label="Share purchase frequency"
-          value={form.sharePurchaseFrequency}
-          options={frequencyOptions}
-          onChange={(value) => updateField('sharePurchaseFrequency', value)}
-          disabled={saving}
-        />
+        {!isSaccos ? (
+          <MobileSelect
+            label="Share purchase frequency"
+            value={form.sharePurchaseFrequency}
+            options={frequencyOptions}
+            onChange={(value) => updateField('sharePurchaseFrequency', value)}
+            disabled={saving}
+          />
+        ) : null}
         <MobileTextInput
           label="Minimum shares"
           value={form.minShares}
@@ -396,7 +400,7 @@ export default function MobileGroupConfigFormScreen({ mode = 'create', configId 
           value={form.loanMultiplier}
           onChangeText={(value) => updateField('loanMultiplier', value)}
           keyboardType="decimal-pad"
-          helperText="Max loan amount is calculated against member shares."
+          helperText={isSaccos ? 'Max loan amount is paid savings multiplied by this value.' : 'Max loan amount is calculated against member shares.'}
           error={submitted ? validation.errors.loanMultiplier : undefined}
           icon={Landmark}
           disabled={saving}
@@ -410,9 +414,9 @@ export default function MobileGroupConfigFormScreen({ mode = 'create', configId 
         <MobileCheckboxRow label="Deduct insurance on disbursement" description="Deduct only the insurance portion when money is disbursed." checked={form.deductInsuranceOnDisbursement} onChange={(checked) => updateField('deductInsuranceOnDisbursement', checked)} disabled={saving} />
       </MobileFormSection>
 
-      <MobileFormSection title="Social contributions and fines" description="Configure social contributions, late contribution fines, and attendance fines.">
-        <MobileAmountInput label="Social contribution amount" value={form.socialAmount} onChangeText={(value) => updateField('socialAmount', value)} disabled={saving} />
-        <MobileSelect label="Social contribution frequency" value={form.socialFrequency} options={frequencyOptions} onChange={(value) => updateField('socialFrequency', value)} disabled={saving} />
+      <MobileFormSection title={isSaccos ? 'Fines and attendance' : 'Social contributions and fines'} description={isSaccos ? 'SACCOS savings never create social contributions. Configure only the remaining fine rules.' : 'Configure social contributions, late contribution fines, and attendance fines.'}>
+        {!isSaccos ? <MobileAmountInput label="Social contribution amount" value={form.socialAmount} onChangeText={(value) => updateField('socialAmount', value)} disabled={saving} /> : null}
+        {!isSaccos ? <MobileSelect label="Social contribution frequency" value={form.socialFrequency} options={frequencyOptions} onChange={(value) => updateField('socialFrequency', value)} disabled={saving} /> : null}
         <MobileSelect label="Late contribution fine type" value={form.fineType} options={fineTypeOptions} onChange={(value) => updateField('fineType', value)} disabled={saving} />
         {form.fineType === 'AMOUNT' ? (
           <MobileAmountInput label="Fine amount *" value={form.fineAmount} onChangeText={(value) => updateField('fineAmount', value)} error={submitted ? validation.errors.fineAmount : undefined} disabled={saving} />
@@ -431,8 +435,8 @@ export default function MobileGroupConfigFormScreen({ mode = 'create', configId 
       <MobileFormSection title="Dividends and policy rules" description="Additional rules used by year-end, dividends, emergency loans, and registration fee workflows.">
         <MobileSelect label="Dividend weighting" value={form.dividendsWeighting} options={dividendWeightingOptions} onChange={(value) => updateField('dividendsWeighting', value)} disabled={saving} />
         <MobileTextInput label="Dividend minimum months" value={form.dividendsMinMonthsSinceJoin} onChangeText={(value) => updateField('dividendsMinMonthsSinceJoin', value)} keyboardType="number-pad" icon={CalendarDays} disabled={saving} />
-        <MobileCheckboxRow label="Enable share inactivity rule" description="Flag members who miss too many share purchase periods." checked={form.shareInactivityEnabled} onChange={(checked) => updateField('shareInactivityEnabled', checked)} disabled={saving} />
-        <MobileTextInput label="Missed periods threshold" value={form.shareInactivityMissedPeriodsThreshold} onChangeText={(value) => updateField('shareInactivityMissedPeriodsThreshold', value)} keyboardType="number-pad" icon={CalendarDays} disabled={saving} />
+        {!isSaccos ? <MobileCheckboxRow label="Enable share inactivity rule" description="Flag members who miss too many share purchase periods." checked={form.shareInactivityEnabled} onChange={(checked) => updateField('shareInactivityEnabled', checked)} disabled={saving} /> : null}
+        {!isSaccos ? <MobileTextInput label="Missed periods threshold" value={form.shareInactivityMissedPeriodsThreshold} onChangeText={(value) => updateField('shareInactivityMissedPeriodsThreshold', value)} keyboardType="number-pad" icon={CalendarDays} disabled={saving} /> : null}
         <MobileCheckboxRow label="Enable emergency loans" description="Allow emergency loan behavior for this configuration." checked={form.emergencyEnabled} onChange={(checked) => updateField('emergencyEnabled', checked)} disabled={saving} />
         <MobileTextInput label="Emergency interest rate (%)" value={form.emergencyInterestRate} onChangeText={(value) => updateField('emergencyInterestRate', value)} keyboardType="decimal-pad" icon={Percent} disabled={saving} />
         <MobileCheckboxRow label="Repay emergency loan in one term" checked={form.emergencyForceSingleTerm} onChange={(checked) => updateField('emergencyForceSingleTerm', checked)} disabled={saving} />
@@ -577,7 +581,7 @@ function formFromConfig(config: GroupConfig): GroupConfigFormState {
   };
 }
 
-function buildPayload(form: GroupConfigFormState, associationId: string): GroupConfigPayload {
+function buildPayload(form: GroupConfigFormState, associationId: string, isSaccos: boolean): GroupConfigPayload {
   const fineType = form.fineType || 'AMOUNT';
   const attendanceFineType = form.attendanceFineType || 'AMOUNT';
 
@@ -585,15 +589,15 @@ function buildPayload(form: GroupConfigFormState, associationId: string): GroupC
     name: form.name.trim(),
     associationId,
     shareValue: toNumber(form.shareValue),
-    sharePurchaseFrequency: form.sharePurchaseFrequency,
+    sharePurchaseFrequency: isSaccos ? undefined : form.sharePurchaseFrequency,
     minShares: toInt(form.minShares),
     interestRate: toNumber(form.interestRate),
     insuranceRate: toNumber(form.insuranceRate),
     loanMultiplier: toNumber(form.loanMultiplier),
     defaultInstallmentCount: Math.max(1, toInt(form.defaultInstallmentCount)),
     loanRepaymentGracePeriodDays: Math.max(0, toInt(form.loanRepaymentGracePeriodDays)),
-    socialAmount: toNumber(form.socialAmount),
-    socialFrequency: form.socialFrequency,
+    socialAmount: isSaccos ? 0 : toNumber(form.socialAmount),
+    socialFrequency: isSaccos ? undefined : form.socialFrequency,
     fineType,
     fineAmount: fineType === 'AMOUNT' ? toNumber(form.fineAmount) : undefined,
     finePercentage: fineType === 'PERCENTAGE' ? toNumber(form.finePercentage) : undefined,
@@ -621,7 +625,7 @@ function buildPayload(form: GroupConfigFormState, associationId: string): GroupC
       'emergency.capRule': 'ONE_TERM_OF_LARGEST_LOAN',
       'registration.fee.enabled': String(form.registrationFeeEnabled),
       'registration.fee.amount': Math.max(0, toNumber(form.registrationFeeAmount)),
-      'shares.inactivity.enabled': String(form.shareInactivityEnabled),
+      'shares.inactivity.enabled': String(isSaccos ? false : form.shareInactivityEnabled),
       'shares.inactivity.missedPeriodsThreshold': Math.max(1, toInt(form.shareInactivityMissedPeriodsThreshold)),
     },
     interestType: form.interestType || 'SIMPLE',

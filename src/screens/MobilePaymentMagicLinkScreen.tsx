@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, Share, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation } from '@/auth/association-type';
 import {
   MobileAmountInput,
   MobileButton,
@@ -41,7 +42,8 @@ const currencyOptions = [
 ];
 
 export default function MobilePaymentMagicLinkScreen() {
-  const { activeView, associationId } = useAuth();
+  const { activeView, associationId, user } = useAuth();
+  const isSaccos = isSaccosAssociation(user?.associationType);
   const theme = useNaneTheme();
   const [members, setMembers] = useState<AssociationMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,7 @@ export default function MobilePaymentMagicLinkScreen() {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [amount, setAmount] = useState('5000');
   const [currency, setCurrency] = useState<'TZS' | 'KES' | 'USD' | 'NGN'>('TZS');
-  const [description, setDescription] = useState('Member contribution');
+  const [description, setDescription] = useState(() => isSaccos ? 'SACCOS savings contribution' : 'Member contribution');
   const [ttlMinutes, setTtlMinutes] = useState('30');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [link, setLink] = useState('');
@@ -177,7 +179,7 @@ export default function MobilePaymentMagicLinkScreen() {
         showLogo
         eyebrow="Payments"
         title="Send payment link"
-        subtitle="SMS link for member contributions"
+        subtitle={isSaccos ? 'SMS link for SACCOS savings' : 'SMS link for member contributions'}
         onBack={() => router.back()}
         rightAction={
           <MobileIconButton

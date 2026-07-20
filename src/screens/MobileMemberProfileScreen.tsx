@@ -451,7 +451,7 @@ export default function MobileMemberProfileScreen({ initialTab = 'overview' }: M
 
 function shouldLoadPackage(associationType?: string | null) {
   const normalized = associationType?.toUpperCase();
-  return normalized !== 'VIKOBA' && normalized !== 'UNION';
+  return normalized !== 'VIKOBA' && normalized !== 'SACCOS' && normalized !== 'SACCO' && normalized !== 'UNION';
 }
 
 function normalizeLanguage(value: unknown) {

@@ -44,6 +44,20 @@ export type AssociationDashboardData = {
   timestamp?: string;
 };
 
+export type FinancialDashboardData = {
+  associationId?: string | null;
+  summaryStats?: {
+    totalSavings?: number | string | null;
+    totalShares?: {
+      shareCount?: number | string | null;
+      totalShareValue?: number | string | null;
+    } | null;
+  } | null;
+  contributions?: {
+    monthlySavings?: Record<string, number | string | null | undefined> | null;
+  } | null;
+};
+
 export type UnionTrendPoint = {
   month?: string;
   totalDeductions?: number;
@@ -116,6 +130,7 @@ export type MemberDashboardData = {
   totalShareValue?: number;
   totalSocialContributions?: number;
   totalSharePurchases?: number;
+  totalSavings?: number;
   subscribedPackages?: {
     id: string;
     name: string;
@@ -212,6 +227,10 @@ export type SystemAdminImpersonationResponse = {
 
 export function getAssociationDashboard(associationId: string) {
   return apiRequest<AssociationDashboardData>(`/dashboard/association-admin?associationId=${encodeURIComponent(associationId)}`);
+}
+
+export function getFinancialDashboard(associationId: string) {
+  return apiRequest<FinancialDashboardData>(`/financial-dashboard?associationId=${encodeURIComponent(associationId)}`);
 }
 
 export function getUnionDashboard(associationId: string) {

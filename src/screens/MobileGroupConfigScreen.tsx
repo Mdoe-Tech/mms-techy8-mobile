@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation, isVikobaAssociation } from '@/auth/association-type';
 import {
   MobileButton,
   MobileCard,
@@ -71,6 +72,7 @@ type MobileGroupConfigScreenProps = {
 
 export default function MobileGroupConfigScreen({ initialConfigId }: MobileGroupConfigScreenProps) {
   const { activeView, associationId, user } = useAuth();
+  const isSaccos = isSaccosAssociation(user?.associationType);
   const [configs, setConfigs] = useState<GroupConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -173,7 +175,7 @@ export default function MobileGroupConfigScreen({ initialConfigId }: MobileGroup
           id: String(config.id || labelForConfig(config)),
           title: labelForConfig(config),
           subtitle: `FY ${formatDate(config.financialYearStartDate)} - ${formatDate(config.financialYearEndDate)}`,
-          meta: `Share ${config.sharePurchaseFrequency || 'Not set'} · Social ${config.socialFrequency || 'Not set'}`,
+          meta: isSaccos ? 'Equity shares · Savings-based lending' : `Share ${config.sharePurchaseFrequency || 'Not set'} · Social ${config.socialFrequency || 'Not set'}`,
           amount: formatCurrency(toNumber(config.shareValue)),
           status: fy.key,
           statusLabel: fy.label,
@@ -181,7 +183,7 @@ export default function MobileGroupConfigScreen({ initialConfigId }: MobileGroup
           accent: fy.tone === 'success' ? 'success' : fy.tone === 'warning' ? 'warning' : fy.tone === 'danger' ? 'danger' : 'primary',
         };
       }),
-    [visibleConfigs],
+    [isSaccos, visibleConfigs],
   );
 
   useEffect(() => {
@@ -227,8 +229,8 @@ export default function MobileGroupConfigScreen({ initialConfigId }: MobileGroup
     return <AccessDeniedScreen title="Group configuration" description="Group configuration is available in association admin workspaces only." />;
   }
 
-  if (String(user?.associationType || '').toUpperCase() !== 'VIKOBA') {
-    return <AccessDeniedScreen title="Group configuration" description="Loan group configuration is available for VIKOBA associations only." />;
+  if (!isVikobaAssociation(user?.associationType) && !isSaccos) {
+    return <AccessDeniedScreen title="Group configuration" description="Loan group configuration is available for VIKOBA and SACCOS associations." />;
   }
 
   if (loading && configs.length === 0) {
@@ -241,7 +243,7 @@ export default function MobileGroupConfigScreen({ initialConfigId }: MobileGroup
         showLogo
         eyebrow="Settings"
         title="Group configuration"
-        subtitle="Shares, loans, fines, and financial-year rules."
+        subtitle={isSaccos ? 'Equity shares, savings-based loans, and financial-year rules.' : 'Shares, loans, fines, and financial-year rules.'}
         onBack={() => router.back()}
         rightAction={<MobileIconButton icon={RefreshCw} label="Refresh configuration" variant="secondary" disabled={refreshing} onPress={() => void loadConfigs('refresh')} />}
       />
@@ -261,7 +263,7 @@ export default function MobileGroupConfigScreen({ initialConfigId }: MobileGroup
             <MobileText variant="small" tone="secondary" numberOfLines={3}>
               {primaryConfig
                 ? `Financial year ${formatDate(primaryConfig.financialYearStartDate)} to ${formatDate(primaryConfig.financialYearEndDate)}.`
-                : 'Create a configuration before recording VIKOBA shares, loans, fines, and financial-year workflows.'}
+                : `Create a configuration before using ${isSaccos ? 'SACCOS savings, equity shares, and loans' : 'VIKOBA shares, loans, fines, and financial-year workflows'}.`}
             </MobileText>
           </View>
           {primaryConfig ? <MobileStatusBadge status={financialYearStatus(primaryConfig).key} label={financialYearStatus(primaryConfig).label} tone={financialYearStatus(primaryConfig).tone} /> : null}
@@ -273,7 +275,7 @@ export default function MobileGroupConfigScreen({ initialConfigId }: MobileGroup
           <MobileKpiCard title="Configurations" value={`${metrics.total}`} description="Association rulesets" icon={FileText} tone="blue" />
         </MobileKpiGridItem>
         <MobileKpiGridItem>
-          <MobileKpiCard title="Share value" value={formatCurrency(toNumber(primaryConfig?.shareValue))} description={primaryConfig?.sharePurchaseFrequency || 'Not configured'} icon={Coins} tone="green" />
+          <MobileKpiCard title={isSaccos ? 'Equity share value' : 'Share value'} value={formatCurrency(toNumber(primaryConfig?.shareValue))} description={isSaccos ? 'Used for ownership and dividends' : primaryConfig?.sharePurchaseFrequency || 'Not configured'} icon={Coins} tone="green" />
         </MobileKpiGridItem>
         <MobileKpiGridItem>
           <MobileKpiCard title="Loan multiplier" value={`${formatNumber(toNumber(primaryConfig?.loanMultiplier))}x`} description={`${formatNumber(toNumber(primaryConfig?.interestRate))}% interest`} icon={Landmark} tone="purple" />
@@ -290,7 +292,7 @@ export default function MobileGroupConfigScreen({ initialConfigId }: MobileGroup
               Configuration register
             </MobileText>
             <MobileText variant="small" tone="secondary">
-              Review active rules before creating contributions, loans, and fines.
+              {isSaccos ? 'Review equity, savings-based loan, and financial-year rules.' : 'Review active rules before creating contributions, loans, and fines.'}
             </MobileText>
           </View>
           <MobileStatusBadge status="Tracked" label={`${visibleConfigs.length} shown`} tone="primary" />
@@ -320,7 +322,7 @@ export default function MobileGroupConfigScreen({ initialConfigId }: MobileGroup
       ) : (
         <MobileEmptyState
           title="No configuration found"
-          description={searchTerm ? 'No configuration matches your search or filter.' : 'Create a group configuration before using VIKOBA financial workflows.'}
+          description={searchTerm ? 'No configuration matches your search or filter.' : `Create a group configuration before using ${isSaccos ? 'SACCOS' : 'VIKOBA'} financial workflows.`}
           actionLabel={canManage ? 'Create configuration' : 'Refresh'}
           onAction={canManage ? openCreate : () => void loadConfigs('refresh')}
         />

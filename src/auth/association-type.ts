@@ -9,15 +9,20 @@ export function normalizeAssociationType(value?: string | null): SupportedAssoci
   if (!compact) return null;
   if (compact === 'GENERIC' || compact === 'GENERAL') return 'GENERIC';
   if (compact === 'UNION') return 'UNION';
-  if (['VIKOBA', 'VICOBA', 'KIKOBA', 'KICOBA', 'VIKOBAS', 'SACCO', 'SACCOS', 'SACCOOS'].includes(compact)) {
+  if (['VIKOBA', 'VICOBA', 'KIKOBA', 'KICOBA', 'VIKOBAS'].includes(compact)) {
     return 'VIKOBA';
   }
+  if (['SACCO', 'SACCOS', 'SACCOOS'].includes(compact)) return 'SACCOS';
 
   return null;
 }
 
 export function isVikobaAssociation(value?: string | null) {
   return normalizeAssociationType(value) === 'VIKOBA';
+}
+
+export function isSaccosAssociation(value?: string | null) {
+  return normalizeAssociationType(value) === 'SACCOS';
 }
 
 export function isGenericAssociation(value?: string | null) {

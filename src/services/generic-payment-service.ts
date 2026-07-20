@@ -1,6 +1,7 @@
 import { apiEnvelopeRequest } from '@/api/client';
 
 export type PaymentPurpose =
+  | 'SAVINGS'
   | 'SHARE_PURCHASE'
   | 'SOCIAL_CONTRIBUTION'
   | 'SHARED_SOCIAL'

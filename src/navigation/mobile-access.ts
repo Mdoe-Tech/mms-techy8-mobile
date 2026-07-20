@@ -79,12 +79,13 @@ export function canAccessMobileRoute(route: MobileRouteItem, access: MobileRoute
 
   const deniedFeature = getDeniedBillingFeature(route, access);
   if (deniedFeature) {
+    const billingFeatureKey = getEffectiveBillingFeatureKey(route, access);
     return {
       allowed: false,
       reason: 'billing',
       title: 'Not included in this plan',
       description: `${route.title} is not included in the current association billing plan.`,
-      billingFeatureKey: route.billingFeatureKey,
+      billingFeatureKey,
       deniedFeature,
     };
   }
@@ -161,7 +162,7 @@ function isAllowedForAssociationType(route: MobileRouteItem, associationType?: s
 
 function getDeniedBillingFeature(route: MobileRouteItem, access: MobileRouteAccessState) {
   if (access.billingEntitlementsLoading) return null;
-  const featureKey = route.billingFeatureKey;
+  const featureKey = getEffectiveBillingFeatureKey(route, access);
   if (!featureKey || ALWAYS_ALLOWED_BILLING_KEYS.has(normalizeFeatureKey(featureKey))) return null;
 
   const entitlements = access.billingEntitlements;
@@ -180,6 +181,17 @@ function getDeniedBillingFeature(route: MobileRouteItem, access: MobileRouteAcce
   }
 
   return null;
+}
+
+function getEffectiveBillingFeatureKey(route: MobileRouteItem, access: MobileRouteAccessState) {
+  const associationType = normalizeAssociationType(
+    access.user?.associationType || access.billingEntitlements?.associationType,
+  );
+  if (associationType === 'SACCOS') {
+    if (route.path === '/associations/revenue-transactions/create') return 'record.equity.shares';
+    if (route.path.startsWith('/associations/group-config')) return 'saccos.configuration';
+  }
+  return route.billingFeatureKey;
 }
 
 function findEntitlementFeature(entitlements: BillingEntitlements, featureKey: string) {

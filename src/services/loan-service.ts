@@ -83,6 +83,10 @@ export type LoanMemberEligibility = {
   fullLegalName?: string | null;
   membershipNumber?: string | null;
   status?: string | null;
+  associationType?: string | null;
+  qualificationBasis?: 'SAVINGS' | 'SHARES' | string | null;
+  qualificationBalance?: number | string | null;
+  savingsBalance?: number | string | null;
   shares?: {
     id?: string | null;
     shareCount?: number | string | null;

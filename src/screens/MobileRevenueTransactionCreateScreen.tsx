@@ -14,7 +14,7 @@ import {
 import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
-import { isGenericAssociation } from '@/auth/association-type';
+import { isGenericAssociation, isSaccosAssociation } from '@/auth/association-type';
 import {
   MobileAmountInput,
   MobileButton,
@@ -55,7 +55,7 @@ type PaymentEntry = {
 
 const MAX_PAYMENT_ENTRIES = 6;
 
-const paymentTypeOptions = [
+const vikobaPaymentTypeOptions = [
   { label: 'Share purchase', value: 'SHARE_PURCHASE' },
   { label: 'Social contribution', value: 'SOCIAL_CONTRIBUTION' },
   { label: 'Fine', value: 'FINE' },
@@ -103,6 +103,15 @@ export default function MobileRevenueTransactionCreateScreen() {
   const [paymentEntries, setPaymentEntries] = useState<PaymentEntry[]>([
     { id: 'line-1', type: defaultPaymentType(user?.associationType), amount: '' },
   ]);
+  const isSaccos = isSaccosAssociation(user?.associationType);
+  const paymentTypeOptions = useMemo(() => isSaccos ? [
+    { label: 'Equity share purchase', value: 'SHARE_PURCHASE' },
+    { label: 'Fine', value: 'FINE' },
+    { label: 'Penalty', value: 'PENALTY' },
+    { label: 'Membership fee', value: 'MEMBERSHIP_FEE' },
+    { label: 'Loan repayment', value: 'LOAN_REPAYMENT' },
+    { label: 'Other', value: 'OTHER' },
+  ] : vikobaPaymentTypeOptions, [isSaccos]);
 
   const loadFormData = useCallback(
     async (mode: 'initial' | 'refresh' = 'initial') => {
@@ -326,8 +335,8 @@ export default function MobileRevenueTransactionCreateScreen() {
       <MobilePageHeader
         showLogo
         eyebrow="Finance"
-        title="Record transaction"
-        subtitle={selectedMember ? selectedMember.fullLegalName || 'Selected member' : 'Select member and payments'}
+        title={isSaccos ? 'Record SACCOS equity shares' : 'Record transaction'}
+        subtitle={selectedMember ? selectedMember.fullLegalName || 'Selected member' : isSaccos ? 'Equity shares remain separate from monthly savings' : 'Select member and payments'}
         onBack={() => router.back()}
         rightAction={
           <MobileIconButton
@@ -377,7 +386,7 @@ export default function MobileRevenueTransactionCreateScreen() {
         ) : null}
       </MobileFormSection>
 
-      <MobileFormSection title="Payment lines" description="Add one or more payment purposes. Amounts are combined before submission.">
+      <MobileFormSection title="Payment lines" description={isSaccos ? 'Record equity shares and other applicable payments here. Use Capture Savings for monthly savings; SACCOS does not collect socials.' : 'Add one or more payment purposes. Amounts are combined before submission.'}>
         <View style={styles.sectionActionRow}>
           <MobileButton label="Add line" icon={Plus} size="sm" variant="secondary" onPress={addPaymentEntry} disabled={paymentEntries.length >= MAX_PAYMENT_ENTRIES} />
         </View>

@@ -13,6 +13,7 @@ import {
 import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation } from '@/auth/association-type';
 import {
   MobileAmountInput,
   MobileButton,
@@ -54,7 +55,7 @@ type RevenueStatusFilter = 'all' | 'PAID' | 'PENDING' | 'OVERDUE' | 'UNPAID' | '
 const INITIAL_VISIBLE_COUNT = 20;
 const LOAD_MORE_COUNT = 20;
 
-const paymentTypeOptions = [
+const vikobaPaymentTypeOptions = [
   { label: 'All payment types', value: 'all' },
   { label: 'Share purchase', value: 'SHARE_PURCHASE' },
   { label: 'Social contribution', value: 'SOCIAL_CONTRIBUTION' },
@@ -75,6 +76,17 @@ const sortOptions = [
 
 export default function MobileRevenueTransactionsScreen() {
   const { activeView, associationId, user } = useAuth();
+  const isSaccos = isSaccosAssociation(user?.associationType);
+  const paymentTypeOptions = useMemo(() => isSaccos ? [
+    { label: 'All payment types', value: 'all' },
+    { label: 'Savings', value: 'SAVINGS' },
+    { label: 'Equity share purchase', value: 'SHARE_PURCHASE' },
+    { label: 'Loan repayment', value: 'LOAN_REPAYMENT' },
+    { label: 'Fine', value: 'FINE' },
+    { label: 'Penalty', value: 'PENALTY' },
+    { label: 'Event registration', value: 'EVENT_REGISTRATION' },
+    { label: 'Subscription', value: 'SUBSCRIPTION' },
+  ] : vikobaPaymentTypeOptions, [isSaccos]);
   const [transactions, setTransactions] = useState<RevenueTransaction[]>([]);
   const [serverTotal, setServerTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -274,7 +286,7 @@ export default function MobileRevenueTransactionsScreen() {
         { key: 'amount', label: 'Amount', align: 'right' as const, width: '12%', value: (transaction: RevenueTransaction) => formatTzs(getRevenueTransactionTotal(transaction)) },
       ],
     }),
-    [debouncedSearch, endDate, filteredTransactions, kpis, maxAmount, minAmount, paymentType, search, startDate, status, user?.associationName],
+    [debouncedSearch, endDate, filteredTransactions, kpis, maxAmount, minAmount, paymentType, paymentTypeOptions, search, startDate, status, user?.associationName],
   );
 
   if (activeView !== 'ADMIN') {
@@ -435,6 +447,7 @@ export default function MobileRevenueTransactionsScreen() {
       <RevenueFilterSheet
         visible={filterOpen}
         paymentType={paymentType}
+        paymentTypeOptions={paymentTypeOptions}
         startDate={startDate}
         endDate={endDate}
         minAmount={minAmount}
@@ -487,6 +500,7 @@ export default function MobileRevenueTransactionsScreen() {
 type RevenueFilterSheetProps = {
   visible: boolean;
   paymentType: string;
+  paymentTypeOptions: { label: string; value: string }[];
   startDate: string;
   endDate: string;
   minAmount: string;
@@ -503,6 +517,7 @@ type RevenueFilterSheetProps = {
 function RevenueFilterSheet({
   visible,
   paymentType,
+  paymentTypeOptions,
   startDate,
   endDate,
   minAmount,

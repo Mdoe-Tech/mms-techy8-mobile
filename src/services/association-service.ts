@@ -45,7 +45,7 @@ export type AssociationProfileUpdatePayload = {
 
 export type AssociationCreateWithAdminPayload = {
   name: string;
-  type: 'GENERIC' | 'VIKOBA' | 'UNION';
+  type: 'GENERIC' | 'VIKOBA' | 'SACCOS' | 'UNION';
   address: string;
   email: string;
   telephoneNumber: string;

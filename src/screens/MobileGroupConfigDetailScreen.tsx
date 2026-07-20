@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation, isVikobaAssociation } from '@/auth/association-type';
 import {
   MobileButton,
   MobileCard,
@@ -52,6 +53,7 @@ type MobileGroupConfigDetailScreenProps = {
 
 export default function MobileGroupConfigDetailScreen({ configId }: MobileGroupConfigDetailScreenProps) {
   const { activeView, user } = useAuth();
+  const isSaccos = isSaccosAssociation(user?.associationType);
   const [config, setConfig] = useState<GroupConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -146,8 +148,8 @@ export default function MobileGroupConfigDetailScreen({ configId }: MobileGroupC
     return <AccessDeniedScreen title="Group configuration" description="Configuration details are available in association admin workspaces only." />;
   }
 
-  if (String(user?.associationType || '').toUpperCase() !== 'VIKOBA') {
-    return <AccessDeniedScreen title="Group configuration" description="Loan group configuration is available for VIKOBA associations only." />;
+  if (!isVikobaAssociation(user?.associationType) && !isSaccos) {
+    return <AccessDeniedScreen title="Group configuration" description="Loan group configuration is available for VIKOBA and SACCOS associations." />;
   }
 
   if (!configId) {
@@ -219,7 +221,7 @@ export default function MobileGroupConfigDetailScreen({ configId }: MobileGroupC
       {error ? <MobileStatusBadge status="Refresh failed" label={error} tone="warning" /> : null}
 
       <MobileDetailHeader
-        eyebrow="VIKOBA ruleset"
+        eyebrow={`${isSaccos ? 'SACCOS' : 'VIKOBA'} ruleset`}
         title={configName}
         subtitle={`Version ${config.version ?? 1} · FY ${formatDate(config.financialYearStartDate)} - ${formatDate(config.financialYearEndDate)}`}
         avatarName={configName}
@@ -230,9 +232,9 @@ export default function MobileGroupConfigDetailScreen({ configId }: MobileGroupC
       />
 
       <MobileSummaryPanel
-        title="Share value"
+        title={isSaccos ? 'Equity share value' : 'Share value'}
         value={formatCurrency(toNumber(config.shareValue))}
-        description={`${config.sharePurchaseFrequency || 'Frequency not set'} shares · ${formatNumber(toNumber(config.loanMultiplier))}x loan multiplier`}
+        description={isSaccos ? `Equity ownership · ${formatNumber(toNumber(config.loanMultiplier))}x paid savings loan multiplier` : `${config.sharePurchaseFrequency || 'Frequency not set'} shares · ${formatNumber(toNumber(config.loanMultiplier))}x loan multiplier`}
         tone={summaryTone}
         icon={SlidersHorizontal}
         footer={
@@ -252,15 +254,15 @@ export default function MobileGroupConfigDetailScreen({ configId }: MobileGroupC
       {!canManage ? <MobileStatusBadge status="Read only" label="Your role can review this configuration but cannot change it." tone="info" /> : null}
 
       <MobileCard compact accent="green">
-        <SectionHeader title="Shares and social contributions" status="Contrib." tone="success" />
-        <MobileInfoRow label="Share value" value={formatCurrency(toNumber(config.shareValue))} helper={config.sharePurchaseFrequency || 'Frequency not set'} icon={Coins} />
+        <SectionHeader title={isSaccos ? 'Equity shares' : 'Shares and social contributions'} status="Contrib." tone="success" />
+        <MobileInfoRow label={isSaccos ? 'Equity share value' : 'Share value'} value={formatCurrency(toNumber(config.shareValue))} helper={isSaccos ? 'Used for ownership and dividends' : config.sharePurchaseFrequency || 'Frequency not set'} icon={Coins} />
         <MobileInfoRow label="Minimum shares" value={formatNumber(toNumber(config.minShares))} helper="Minimum shares expected from a member." icon={Users} />
-        <MobileInfoRow label="Social amount" value={formatCurrency(toNumber(config.socialAmount))} helper={config.socialFrequency || 'Frequency not set'} icon={Banknote} />
+        {!isSaccos ? <MobileInfoRow label="Social amount" value={formatCurrency(toNumber(config.socialAmount))} helper={config.socialFrequency || 'Frequency not set'} icon={Banknote} /> : null}
       </MobileCard>
 
       <MobileCard compact accent="purple">
         <SectionHeader title="Loans and penalties" status="Loan rules" tone="review" />
-        <MobileInfoRow label="Loan multiplier" value={`${formatNumber(toNumber(config.loanMultiplier))}x`} helper="Borrowing limit against shares." icon={Landmark} />
+        <MobileInfoRow label="Loan multiplier" value={`${formatNumber(toNumber(config.loanMultiplier))}x`} helper={isSaccos ? 'Borrowing limit against paid savings.' : 'Borrowing limit against shares.'} icon={Landmark} />
         <MobileInfoRow label="Interest" value={`${formatNumber(toNumber(config.interestRate))}%`} helper={config.interestType || 'Interest type not set'} icon={Percent} />
         <MobileInfoRow label="Insurance" value={`${formatNumber(toNumber(config.insuranceRate))}%`} helper={config.deductInsuranceOnDisbursement ? 'Deducted on disbursement' : 'Not deducted on disbursement'} icon={ShieldCheck} />
         <MobileInfoRow label="Penalty rate" value={`${formatNumber(toNumber(config.penaltyRate))}%`} helper={`${formatNumber(toNumber(config.loanRepaymentGracePeriodDays))} grace days`} icon={AlertTriangle} />

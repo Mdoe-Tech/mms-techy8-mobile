@@ -14,6 +14,7 @@ import { StyleSheet, View } from 'react-native';
 
 import AccessDeniedScreen from '@/screens/AccessDeniedScreen';
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation } from '@/auth/association-type';
 import {
   MobileAmountInput,
   MobileButton,
@@ -58,7 +59,7 @@ type RevenueStatusFilter = 'all' | 'PAID' | 'PENDING' | 'OVERDUE' | 'UNPAID' | '
 const INITIAL_VISIBLE_COUNT = 12;
 const LOAD_MORE_COUNT = 12;
 
-const paymentTypeOptions = [
+const vikobaPaymentTypeOptions = [
   { label: 'All payment types', value: 'all' },
   { label: 'Share purchase', value: 'SHARE_PURCHASE' },
   { label: 'Social contribution', value: 'SOCIAL_CONTRIBUTION' },
@@ -83,6 +84,18 @@ const sortOptions = [
 
 export default function MobileMemberRevenueTransactionsScreen() {
   const { activeView, user } = useAuth();
+  const paymentTypeOptions = useMemo(() => isSaccosAssociation(user?.associationType) ? [
+    { label: 'All payment types', value: 'all' },
+    { label: 'Savings', value: 'SAVINGS' },
+    { label: 'Equity share purchase', value: 'SHARE_PURCHASE' },
+    { label: 'Membership fee', value: 'MEMBERSHIP_FEE' },
+    { label: 'Loan repayment', value: 'LOAN_REPAYMENT' },
+    { label: 'Fine', value: 'FINE' },
+    { label: 'Penalty', value: 'PENALTY' },
+    { label: 'Dividend', value: 'DIVIDEND' },
+    { label: 'Event registration', value: 'EVENT_REGISTRATION' },
+    { label: 'Subscription', value: 'SUBSCRIPTION' },
+  ] : vikobaPaymentTypeOptions, [user?.associationType]);
   const userId = user?.userId;
   const [member, setMember] = useState<AssociationMember | null>(null);
   const [transactions, setTransactions] = useState<MemberRevenueTransaction[]>([]);
@@ -419,6 +432,7 @@ export default function MobileMemberRevenueTransactionsScreen() {
       <MemberTransactionFilterSheet
         visible={filterOpen}
         paymentType={paymentType}
+        paymentTypeOptions={paymentTypeOptions}
         startDate={startDate}
         endDate={endDate}
         minAmount={minAmount}
@@ -471,6 +485,7 @@ export default function MobileMemberRevenueTransactionsScreen() {
 type MemberTransactionFilterSheetProps = {
   visible: boolean;
   paymentType: string;
+  paymentTypeOptions: { label: string; value: string }[];
   startDate: string;
   endDate: string;
   minAmount: string;
@@ -487,6 +502,7 @@ type MemberTransactionFilterSheetProps = {
 function MemberTransactionFilterSheet({
   visible,
   paymentType,
+  paymentTypeOptions,
   startDate,
   endDate,
   minAmount,

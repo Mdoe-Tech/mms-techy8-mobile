@@ -121,6 +121,7 @@ const emptyFiles: FileState = {
 const associationTypeOptions = [
   { label: 'Generic association', value: 'GENERIC' },
   { label: 'Vikoba group', value: 'VIKOBA' },
+  { label: 'SACCOS', value: 'SACCOS' },
   { label: 'Union', value: 'UNION' },
 ];
 
@@ -291,7 +292,7 @@ export default function MobileSystemAdminAssociationCreateScreen({
             value={labelAssociationType(form.type)}
             description="Controls tenant defaults"
             icon={Building2}
-            tone={form.type === 'VIKOBA' ? 'green' : form.type === 'UNION' ? 'purple' : 'blue'}
+            tone={form.type === 'VIKOBA' || form.type === 'SACCOS' ? 'green' : form.type === 'UNION' ? 'purple' : 'blue'}
           />
         </MobileKpiGridItem>
         <MobileKpiGridItem>
@@ -345,7 +346,7 @@ export default function MobileSystemAdminAssociationCreateScreen({
           options={associationTypeOptions}
           onChange={(type) => updateForm('type', type as AssociationType)}
           disabled={saving}
-          helperText="Use Vikoba for savings groups, Union for umbrella associations."
+          helperText="Use Vikoba for share-buying groups, SACCOS for separate savings and equity shares, or Union for umbrella associations."
         />
         <MobileTextInput
           label="Registration date"
@@ -650,6 +651,7 @@ function isPhone(value: string) {
 
 function labelAssociationType(type: AssociationType) {
   if (type === 'VIKOBA') return 'Vikoba';
+  if (type === 'SACCOS') return 'SACCOS';
   if (type === 'UNION') return 'Union';
   return 'Generic';
 }

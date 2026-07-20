@@ -49,7 +49,7 @@ export type MobileRouteModule =
   | 'union'
   | 'wallet';
 
-export type SupportedAssociationType = 'GENERIC' | 'VIKOBA' | 'UNION';
+export type SupportedAssociationType = 'GENERIC' | 'VIKOBA' | 'SACCOS' | 'UNION';
 
 export type MobileRouteItem = {
   id: string;
@@ -292,6 +292,7 @@ const associationRoutePaths = [
   '/associations/reports/income-statement',
   '/associations/reports/sms',
   '/associations/reports/statistics',
+  '/associations/reports/saccos-savings',
   '/associations/revenue-transactions/:id',
   '/associations/revenue-transactions/batch-create',
   '/associations/revenue-transactions/bulk/import',
@@ -310,6 +311,7 @@ const associationRoutePaths = [
   '/associations/revenue-transactions/share-distribution',
   '/associations/revenue-transactions/share-fines',
   '/associations/revenue-transactions/share-reconciliation',
+  '/associations/savings/capture',
   '/associations/revenue/:id/edit',
   '/associations/revenue/:id/view',
   '/associations/revenue/categories',
@@ -419,6 +421,7 @@ const primaryRoutes = new Set<string>([
   '/associations/pay/generic',
   '/associations/reports/statistics',
   '/associations/revenue-transactions',
+  '/associations/savings/capture',
   '/associations/revenue/manage',
   '/associations/statements',
   '/associations/wallet',
@@ -474,6 +477,7 @@ const routePermissionRules: RoutePermissionRule[] = [
   { prefix: '/associations/wallet', permission: 'wallets.view' },
   { prefix: '/associations/transactions/reconcile', permission: 'finance.transactions.reconcile' },
   { prefix: '/associations/pay/generic', permission: 'member.self.payments' },
+  { prefix: '/associations/savings/capture', permission: 'finance.transactions.create' },
   { prefix: '/associations/revenue-transactions/export', permission: 'reports.export' },
   { prefix: '/associations/revenue-transactions/bulk/import', permission: 'finance.transactions.create' },
   { prefix: '/associations/revenue-transactions/bulk', permission: 'finance.transactions.create' },
@@ -578,6 +582,8 @@ const billingFeatureRules: BillingFeatureRule[] = [
   { prefix: '/associations/revenue/categories', featureKey: 'revenue.categories' },
   { prefix: '/associations/revenue', featureKey: 'manage.revenue' },
   { prefix: '/associations/loans', featureKey: 'loan.management' },
+  { prefix: '/associations/savings/capture', featureKey: 'savings.contributions' },
+  { prefix: '/associations/reports/saccos-savings', featureKey: 'saccos.savings.report' },
   { prefix: '/associations/revenue-transactions/bulk', featureKey: 'share.contributions' },
   { prefix: '/associations/revenue-transactions/create', featureKey: 'record.contribution' },
   { prefix: '/associations/revenue-transactions/batch-create', featureKey: 'import.transactions' },
@@ -651,25 +657,28 @@ const billingFeatureRules: BillingFeatureRule[] = [
 ];
 
 const associationTypeRestrictions: AssociationTypeRouteRestriction[] = [
-  { prefix: '/associations/loans', allowed: ['VIKOBA'] },
-  { prefix: '/associations/group-config', allowed: ['VIKOBA'] },
+  { prefix: '/associations/loans', allowed: ['VIKOBA', 'SACCOS'] },
+  { prefix: '/associations/group-config', allowed: ['VIKOBA', 'SACCOS'] },
   { prefix: '/associations/year-end-close', allowed: ['VIKOBA'] },
-  { prefix: '/associations/revenue-transactions/create', allowed: ['VIKOBA'] },
+  { prefix: '/associations/savings/capture', allowed: ['SACCOS'] },
+  { prefix: '/associations/reports/saccos-savings', allowed: ['SACCOS'] },
+  { prefix: '/associations/revenue-transactions/create', allowed: ['VIKOBA', 'SACCOS'] },
   { prefix: '/associations/revenue-transactions/calender', allowed: ['VIKOBA'] },
-  { prefix: '/associations/revenue-transactions/member-page', allowed: ['VIKOBA'] },
+  { prefix: '/associations/revenue-transactions/member-page', allowed: ['VIKOBA', 'SACCOS'] },
   { prefix: '/associations/revenue-transactions/over-due', allowed: ['VIKOBA'] },
-  { prefix: '/associations/revenue-transactions/export', allowed: ['VIKOBA', 'UNION'] },
+  { prefix: '/associations/revenue-transactions/export', allowed: ['VIKOBA', 'SACCOS', 'UNION'] },
   { prefix: '/associations/revenue-transactions/fine-management', allowed: ['VIKOBA'] },
   { prefix: '/associations/revenue-transactions/revenue-tracking', allowed: ['VIKOBA'] },
   { prefix: '/associations/statements', allowed: ['VIKOBA'] },
-  { prefix: '/associations/revenue-transactions/share-reconciliation', allowed: ['VIKOBA'] },
+  { prefix: '/associations/revenue-transactions/share-reconciliation', allowed: ['VIKOBA', 'SACCOS'] },
   { prefix: '/associations/revenue-transactions/share-fines', allowed: ['VIKOBA'] },
   { prefix: '/associations/revenue-transactions/share-distribution', allowed: ['VIKOBA'] },
-  { prefix: '/associations/revenue-transactions/dividends', allowed: ['VIKOBA'] },
+  { prefix: '/associations/revenue-transactions/dividends', allowed: ['VIKOBA', 'SACCOS'] },
   { prefix: '/associations/revenue-transactions/batch-create', allowed: ['VIKOBA'] },
+  { prefix: '/associations/revenue-transactions/bulk/import', allowed: ['VIKOBA'] },
   { prefix: '/associations/revenue-transactions/bulk', allowed: ['VIKOBA'] },
   { prefix: '/associations/attendance/schedule-fine', allowed: ['VIKOBA'] },
-  { prefix: '/member/loans', allowed: ['VIKOBA'] },
+  { prefix: '/member/loans', allowed: ['VIKOBA', 'SACCOS'] },
   { prefix: '/associations/packages', allowed: ['GENERIC'] },
   { prefix: '/associations/subscriptions', allowed: ['GENERIC'] },
   { prefix: '/associations/settings/registration-integration', allowed: ['GENERIC'] },
@@ -725,6 +734,7 @@ const titleOverrides: Record<string, string> = {
   '/associations/reports/income-statement': 'Income Statement',
   '/associations/reports/sms': 'SMS Report',
   '/associations/reports/statistics': 'Statistics Report',
+  '/associations/reports/saccos-savings': 'Savings & Shares Report',
   '/associations/revenue-transactions': 'Manage Transactions',
   '/associations/revenue-transactions/batch-create': 'Import Transactions',
   '/associations/revenue-transactions/bulk/import': 'Bulk Import Transactions',
@@ -738,6 +748,7 @@ const titleOverrides: Record<string, string> = {
   '/associations/revenue-transactions/share-distribution': 'Share Distribution',
   '/associations/revenue-transactions/share-fines': 'Share Fine Generator',
   '/associations/revenue-transactions/share-reconciliation': 'Share Reconciliation',
+  '/associations/savings/capture': 'Capture Savings',
   '/associations/settings/associations/assoc-conf': 'Association Configuration',
   '/associations/settings/associations/config': 'Configuration Editor',
   '/associations/settings/bank-accounts': 'Bank Accounts',
@@ -942,7 +953,7 @@ function inferModule(path: string): MobileRouteModule {
   if (path.includes('/packages') || path.includes('/subscription') || path.includes('/registration')) return 'subscriptions';
   if (path.includes('/reports')) return 'reports';
   if (path.includes('/settings')) return 'settings';
-  if (path.includes('/revenue') || path.includes('/expenses') || path.includes('/statements') || path.includes('/year-end-close')) return 'finance';
+  if (path.includes('/revenue') || path.includes('/savings') || path.includes('/expenses') || path.includes('/statements') || path.includes('/year-end-close')) return 'finance';
   return path.startsWith('/member') ? 'members' : 'association';
 }
 

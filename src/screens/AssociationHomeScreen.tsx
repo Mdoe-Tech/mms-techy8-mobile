@@ -20,6 +20,7 @@ import {
 import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation } from '@/auth/association-type';
 import {
   MobileButton,
   MobileCard,
@@ -40,7 +41,7 @@ import {
   MobileText,
 } from '@/components/mobile';
 import { getApiErrorMessage } from '@/types/api';
-import { getAssociationDashboard, type AssociationDashboardData } from '@/services/dashboard-service';
+import { getAssociationDashboard, getFinancialDashboard, type AssociationDashboardData, type FinancialDashboardData } from '@/services/dashboard-service';
 import { getRouteByPath } from '@/navigation/route-registry';
 import { useNaneTheme } from '@/theme/tokens';
 import { formatDate, formatNumber, formatPercent, formatTzs } from '@/utils/format';
@@ -48,7 +49,9 @@ import { formatDate, formatNumber, formatPercent, formatTzs } from '@/utils/form
 export default function AssociationHomeScreen() {
   const theme = useNaneTheme();
   const { associationId, user } = useAuth();
+  const isSaccos = isSaccosAssociation(user?.associationType);
   const [dashboard, setDashboard] = useState<AssociationDashboardData | null>(null);
+  const [financialDashboard, setFinancialDashboard] = useState<FinancialDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,13 +65,18 @@ export default function AssociationHomeScreen() {
     setError(null);
 
     try {
-      setDashboard(await getAssociationDashboard(associationId));
+      const [associationData, financialData] = await Promise.all([
+        getAssociationDashboard(associationId),
+        isSaccos ? getFinancialDashboard(associationId) : Promise.resolve(null),
+      ]);
+      setDashboard(associationData);
+      setFinancialDashboard(financialData);
     } catch (loadError) {
       setError(getApiErrorMessage(loadError));
     } finally {
       setLoading(false);
     }
-  }, [associationId]);
+  }, [associationId, isSaccos]);
 
   useEffect(() => {
     void Promise.resolve().then(loadDashboard);
@@ -115,7 +123,7 @@ export default function AssociationHomeScreen() {
   );
   const membersRoute = getRouteByPath('/associations/members');
   const addMemberRoute = getRouteByPath('/associations/members/new');
-  const recordPaymentRoute = getRouteByPath('/associations/revenue-transactions/create');
+  const recordPaymentRoute = getRouteByPath(isSaccos ? '/associations/savings/capture' : '/associations/revenue-transactions/create');
   const approvalsRoute = getRouteByPath('/associations/wallet/approve-withdrawals');
   const smsConfigRoute = getRouteByPath('/associations/settings/sms-sender-config');
   const openRoute = (route: ReturnType<typeof getRouteByPath>) => {
@@ -237,6 +245,28 @@ export default function AssociationHomeScreen() {
       </MobileCard>
 
       <MobileKpiGrid>
+        {isSaccos ? (
+          <MobileKpiGridItem>
+            <MobileKpiCard
+              title="Total savings"
+              value={formatTzs(Number(financialDashboard?.summaryStats?.totalSavings || 0))}
+              description="Paid member savings"
+              tone="green"
+              icon={WalletCards}
+            />
+          </MobileKpiGridItem>
+        ) : null}
+        {isSaccos ? (
+          <MobileKpiGridItem>
+            <MobileKpiCard
+              title="Total equity shares"
+              value={formatNumber(Number(financialDashboard?.summaryStats?.totalShares?.shareCount || 0))}
+              description={formatTzs(Number(financialDashboard?.summaryStats?.totalShares?.totalShareValue || 0))}
+              tone="purple"
+              icon={Building2}
+            />
+          </MobileKpiGridItem>
+        ) : null}
         <MobileKpiGridItem>
           <MobileKpiCard
             title="Total members"
@@ -293,7 +323,7 @@ export default function AssociationHomeScreen() {
             style={styles.actionButton}
             onPress={() => openRoute(addMemberRoute)}
           />
-          <MobileButton label="Record pay" icon={Banknote} variant="secondary" style={styles.actionButton} onPress={() => openRoute(recordPaymentRoute)} />
+          <MobileButton label={isSaccos ? 'Capture savings' : 'Record pay'} icon={Banknote} variant="secondary" style={styles.actionButton} onPress={() => openRoute(recordPaymentRoute)} />
           <MobileButton label="Approve" icon={CheckCircle2} variant="secondary" style={styles.actionButton} onPress={() => openRoute(approvalsRoute)} />
           <MobileButton label="SMS setup" icon={Send} variant="secondary" style={styles.actionButton} onPress={() => openRoute(smsConfigRoute)} />
         </View>

@@ -303,7 +303,7 @@ export type GroupConfigPayload = {
   name: string;
   associationId: string;
   shareValue: number;
-  sharePurchaseFrequency: string;
+  sharePurchaseFrequency?: string;
   minShares: number;
   interestRate: number;
   insuranceRate: number;
@@ -311,7 +311,7 @@ export type GroupConfigPayload = {
   defaultInstallmentCount: number;
   loanRepaymentGracePeriodDays?: number;
   socialAmount: number;
-  socialFrequency: string;
+  socialFrequency?: string;
   fineType: string;
   fineAmount?: number;
   finePercentage?: number;

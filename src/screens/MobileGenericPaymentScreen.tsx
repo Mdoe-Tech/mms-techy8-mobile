@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation } from '@/auth/association-type';
 import {
   MobileAmountInput,
   MobileButton,
@@ -42,7 +43,7 @@ import AccessDeniedScreen from '@/screens/AccessDeniedScreen';
 const MEMBER_LOAD_COUNT = 8;
 type GenericPaymentMode = 'association' | 'member';
 
-const purposeOptions = [
+const vikobaPurposeOptions = [
   { label: 'Shares', value: 'SHARE_PURCHASE' },
   { label: 'Social contribution', value: 'SOCIAL_CONTRIBUTION' },
   { label: 'Shares + social', value: 'SHARED_SOCIAL' },
@@ -75,6 +76,17 @@ type MobileGenericPaymentScreenProps = {
 
 export default function MobileGenericPaymentScreen({ mode = 'association' }: MobileGenericPaymentScreenProps) {
   const { activeView, associationId, user } = useAuth();
+  const isSaccos = isSaccosAssociation(user?.associationType);
+  const purposeOptions = useMemo(() => isSaccos ? [
+    { label: 'Savings', value: 'SAVINGS' },
+    { label: 'Equity shares', value: 'SHARE_PURCHASE' },
+    { label: 'Fines', value: 'FINE' },
+    { label: 'Penalties', value: 'PENALTY' },
+    { label: 'Loan repayment', value: 'LOAN_REPAYMENT' },
+    { label: 'Wallet top-up', value: 'WALLET_TOP_UP' },
+    { label: 'Registration fee', value: 'REGISTRATION_FEE' },
+    { label: 'Subscription', value: 'SUBSCRIPTION' },
+  ] : vikobaPurposeOptions, [isSaccos]);
   const theme = useNaneTheme();
   const params = useLocalSearchParams();
   const isMemberMode = mode === 'member';
@@ -93,11 +105,14 @@ export default function MobileGenericPaymentScreen({ mode = 'association' }: Mob
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [amount, setAmount] = useState(() => (initialAmount && Number(initialAmount) > 0 ? initialAmount : ''));
   const [currency, setCurrency] = useState('TZS');
-  const [purpose, setPurpose] = useState<PaymentPurpose>(() => parsePurpose(initialPurpose, walletTopUp));
+  const [purpose, setPurpose] = useState<PaymentPurpose>(() => parsePurpose(initialPurpose, walletTopUp, isSaccos));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() => parseMethod(initialMethod));
   const [phoneNumber, setPhoneNumber] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [result, setResult] = useState<GenericPaymentResult | null>(null);
+  const effectivePurpose: PaymentPurpose = purposeOptions.some((option) => option.value === purpose)
+    ? purpose
+    : isSaccos ? 'SAVINGS' : 'SHARE_PURCHASE';
 
   const loadMembers = useCallback(
     async (mode: 'initial' | 'refresh' = 'initial') => {
@@ -158,7 +173,7 @@ export default function MobileGenericPaymentScreen({ mode = 'association' }: Mob
   );
   const paymentAssociationId = isMemberMode ? selectedMember?.associationId || associationId : associationId;
   const amountNumber = Number(amount);
-  const selectedPurposeLabel = purposeOptions.find((option) => option.value === purpose)?.label || purpose;
+  const selectedPurposeLabel = purposeOptions.find((option) => option.value === effectivePurpose)?.label || effectivePurpose;
   const selectedMethodLabel = methodOptions.find((option) => option.value === paymentMethod)?.label || paymentMethod;
   const authorizationUrl = getResultUrl(result);
 
@@ -183,10 +198,10 @@ export default function MobileGenericPaymentScreen({ mode = 'association' }: Mob
     if (!selectedMember.membershipNumber) return 'Selected member has no membership number.';
     if (!Number.isFinite(amountNumber) || amountNumber <= 0) return 'Enter an amount greater than zero.';
     if (paymentMethod === 'mobile_money' && !validatePhone(phoneNumber)) return 'Enter a valid Tanzanian mobile number.';
-    if (purpose === 'LOAN_REPAYMENT') return 'Loan repayment needs a selected loan and is handled in the loan workflow.';
+    if (effectivePurpose === 'LOAN_REPAYMENT') return 'Loan repayment needs a selected loan and is handled in the loan workflow.';
     if (paymentMethod === 'wallet' && activeView !== 'MEMBER') return 'Wallet payments can only use the member wallet owner account.';
     return null;
-  }, [activeView, amountNumber, isMemberMode, paymentAssociationId, paymentMethod, phoneNumber, purpose, selectedMember]);
+  }, [activeView, amountNumber, effectivePurpose, isMemberMode, paymentAssociationId, paymentMethod, phoneNumber, selectedMember]);
 
   const submitPayment = async () => {
     if (!paymentAssociationId || !selectedMember || validationMessage) return;
@@ -203,7 +218,7 @@ export default function MobileGenericPaymentScreen({ mode = 'association' }: Mob
           membershipNumber,
           amount: amountNumber,
           currency,
-          purpose,
+          purpose: effectivePurpose,
           paymentMethod,
           useWallet: paymentMethod === 'wallet',
           isMemberView: activeView === 'MEMBER',
@@ -223,9 +238,9 @@ export default function MobileGenericPaymentScreen({ mode = 'association' }: Mob
           buyerPhone: normalizePhone(phoneNumber || selectedMember.contactInfo?.phoneNumber || ''),
           buyerName: selectedMember.fullLegalName || selectedMember.membershipNumber || 'Member',
           buyerEmail: selectedMember.contactInfo?.email || 'noreply@techy8.com',
-          description: `Payment: ${purpose}`,
+          description: `Payment: ${effectivePurpose}`,
           entityId: selectedMember.id,
-          entityType: purpose,
+          entityType: effectivePurpose,
         });
       }
       setResult(response);
@@ -264,7 +279,7 @@ export default function MobileGenericPaymentScreen({ mode = 'association' }: Mob
         showLogo
         eyebrow="Payments"
         title={isMemberMode ? 'Make payment' : 'Quick payment'}
-        subtitle={isMemberMode ? 'Pay your shares, contributions, fines, and subscriptions' : 'Shares, contributions, fines, and wallet top-ups'}
+        subtitle={isSaccos ? 'Pay savings or equity shares without social contributions' : isMemberMode ? 'Pay your shares, contributions, fines, and subscriptions' : 'Shares, contributions, fines, and wallet top-ups'}
         onBack={() => router.back()}
         rightAction={
           <MobileIconButton
@@ -393,7 +408,7 @@ export default function MobileGenericPaymentScreen({ mode = 'association' }: Mob
         <View style={styles.formStack}>
           <MobileAmountInput label="Amount" value={amount} onChangeText={setAmount} error={amount && amountNumber <= 0 ? 'Enter an amount greater than zero.' : undefined} disabled={processing} />
           <MobileSelect label="Currency" value={currency} options={currencyOptions} onChange={setCurrency} />
-          <MobileSelect label="Purpose" value={purpose} options={purposeOptions} onChange={(value) => setPurpose(value as PaymentPurpose)} />
+          <MobileSelect label="Purpose" value={effectivePurpose} options={purposeOptions} onChange={(value) => setPurpose(value as PaymentPurpose)} />
           <MobileSelect label="Payment method" value={paymentMethod} options={methodOptions} onChange={(value) => setPaymentMethod(value as PaymentMethod)} />
           <MobileTextInput label="Phone number" value={phoneNumber} onChangeText={setPhoneNumber} placeholder="0712345678" keyboardType="phone-pad" icon={Phone} error={paymentMethod === 'mobile_money' && phoneNumber && !validatePhone(phoneNumber) ? 'Enter a valid Tanzanian mobile number.' : undefined} disabled={processing} />
         </View>
@@ -466,9 +481,12 @@ function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function parsePurpose(value: string | undefined, walletTopUp: boolean): PaymentPurpose {
+function parsePurpose(value: string | undefined, walletTopUp: boolean, isSaccos: boolean): PaymentPurpose {
   if (walletTopUp) return 'WALLET_TOP_UP';
-  return purposeOptions.some((option) => option.value === value) ? (value as PaymentPurpose) : 'SHARE_PURCHASE';
+  const allowed = isSaccos
+    ? ['SAVINGS', 'SHARE_PURCHASE', 'FINE', 'PENALTY', 'LOAN_REPAYMENT', 'WALLET_TOP_UP', 'REGISTRATION_FEE', 'SUBSCRIPTION']
+    : vikobaPurposeOptions.map((option) => option.value);
+  return allowed.includes(value || '') ? (value as PaymentPurpose) : isSaccos ? 'SAVINGS' : 'SHARE_PURCHASE';
 }
 
 function parseMethod(value: string | undefined): PaymentMethod {

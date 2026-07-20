@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { isSaccosAssociation, isVikobaAssociation } from '@/auth/association-type';
 import {
   MobileButton,
   MobileCard,
@@ -177,7 +178,7 @@ export default function MobileMemberLoansScreen() {
     return <AccessDeniedScreen title="My loans" description="This native loan register is available from the member portal workspace." />;
   }
 
-  if (user?.associationType && user.associationType !== 'VIKOBA') {
+  if (user?.associationType && !isVikobaAssociation(user.associationType) && !isSaccosAssociation(user.associationType)) {
     return (
       <MobileScreen>
         <MobilePageHeader
@@ -188,8 +189,8 @@ export default function MobileMemberLoansScreen() {
           onBack={() => router.back()}
         />
         <MobileEmptyState
-          title="Loans are for VIKOBA members"
-          description="This association does not use the VIKOBA loan lifecycle."
+          title="Loans are not enabled"
+          description="The mobile loan lifecycle is available for VIKOBA and SACCOS members."
           actionLabel="Back"
           onAction={() => router.back()}
         />
