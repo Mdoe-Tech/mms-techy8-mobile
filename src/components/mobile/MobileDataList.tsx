@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react-native';
+import { CheckSquare, ChevronRight, Square } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { initialsFromName } from '@/utils/format';
@@ -23,9 +23,10 @@ type MobileDataListProps = {
   items: MobileDataListItem[];
   onPressItem?: (item: MobileDataListItem) => void;
   showChevron?: boolean;
+  selectedItemIds?: ReadonlySet<string>;
 };
 
-export function MobileDataList({ items, onPressItem, showChevron = Boolean(onPressItem) }: MobileDataListProps) {
+export function MobileDataList({ items, onPressItem, showChevron = Boolean(onPressItem), selectedItemIds }: MobileDataListProps) {
   const theme = useNaneTheme();
 
   return (
@@ -80,7 +81,11 @@ export function MobileDataList({ items, onPressItem, showChevron = Boolean(onPre
                 ) : null}
               </View>
             </View>
-            {showChevron ? <ChevronRight color={theme.colors.textMuted} size={18} /> : null}
+            {selectedItemIds ? (
+              selectedItemIds.has(item.id)
+                ? <CheckSquare color={theme.colors.primary} size={22} />
+                : <Square color={theme.colors.textMuted} size={22} />
+            ) : showChevron ? <ChevronRight color={theme.colors.textMuted} size={18} /> : null}
           </Pressable>
         );
       })}

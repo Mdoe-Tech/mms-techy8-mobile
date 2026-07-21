@@ -53,7 +53,7 @@ const templateColumns = [
   'fineCategory',
 ];
 
-const acceptedPaymentTypes = ['SHARE_PURCHASE', 'FINE', 'SOCIAL_CONTRIBUTION', 'PENALTY', 'LOAN_REPAYMENT'];
+const acceptedPaymentTypes = ['SHARE_PURCHASE', 'FINE', 'SOCIAL_CONTRIBUTION', 'PENALTY', 'LOAN_REPAYMENT', 'LOAN_APPLICATION_FEE'];
 
 export default function MobileRevenueTransactionBulkImportScreen() {
   const { activeView, associationId, user } = useAuth();

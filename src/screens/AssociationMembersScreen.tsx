@@ -1,10 +1,13 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCw, UserPlus, UsersRound } from 'lucide-react-native';
+import { RefreshCw, UserCheck, UserPlus, UsersRound, UserX } from 'lucide-react-native';
+import { View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
 import {
   MobileButton,
+  MobileCard,
+  MobileConfirmSheet,
   MobileDataList,
   type MobileDataListItem,
   MobileEmptyState,
@@ -22,9 +25,10 @@ import {
   MobileSortSheet,
   MobileStatusBadge,
   MobileStatusTabs,
+  MobileText,
 } from '@/components/mobile';
 import { getRouteByPath } from '@/navigation/route-registry';
-import { getAllAssociationMembers, type AssociationMember } from '@/services/member-service';
+import { getAllAssociationMembers, updateMultipleMemberStatuses, type AssociationMember } from '@/services/member-service';
 import { getApiErrorMessage } from '@/types/api';
 import { formatDate, formatNumber, formatPercent, initialsFromName } from '@/utils/format';
 import AccessDeniedScreen from '@/screens/AccessDeniedScreen';
@@ -61,6 +65,10 @@ export default function AssociationMembersScreen() {
   const [sortBy, setSortBy] = useState('membershipNumber');
   const [sortOpen, setSortOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
+  const [bulkStatusTarget, setBulkStatusTarget] = useState<'ACTIVE' | 'INACTIVE' | null>(null);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const loadMembers = useCallback(
     async (mode: 'initial' | 'refresh' = 'initial') => {
@@ -202,6 +210,32 @@ export default function AssociationMembersScreen() {
     [activeMembers, averageProgress, filteredMembers, members.length, pendingMembers, search, sortBy, status, user?.associationName],
   );
 
+  const toggleMemberSelection = useCallback((memberId: string) => {
+    setSelectedMemberIds((current) => {
+      const next = new Set(current);
+      if (next.has(memberId)) next.delete(memberId);
+      else next.add(memberId);
+      return next;
+    });
+  }, []);
+
+  const updateSelectedStatuses = useCallback(async () => {
+    if (!associationId || !bulkStatusTarget || selectedMemberIds.size === 0) return;
+    setBulkUpdating(true);
+    setError(null);
+    try {
+      await updateMultipleMemberStatuses(associationId, Array.from(selectedMemberIds), bulkStatusTarget);
+      setBulkStatusTarget(null);
+      setSelectedMemberIds(new Set());
+      setSelectionMode(false);
+      await loadMembers('refresh');
+    } catch (updateError) {
+      setError(getApiErrorMessage(updateError));
+    } finally {
+      setBulkUpdating(false);
+    }
+  }, [associationId, bulkStatusTarget, loadMembers, selectedMemberIds]);
+
   if (activeView !== 'ADMIN') {
     return (
       <AccessDeniedScreen
@@ -301,6 +335,15 @@ export default function AssociationMembersScreen() {
         subtitle={`Showing ${formatNumber(Math.min(visibleCount, filteredMembers.length))} of ${formatNumber(filteredMembers.length)} matching members.`}
         actions={
           <>
+            <MobileButton
+              label={selectionMode ? 'Cancel' : 'Select'}
+              size="sm"
+              variant="secondary"
+              onPress={() => {
+                setSelectionMode((current) => !current);
+                setSelectedMemberIds(new Set());
+              }}
+            />
             <MobileReportExportButton mode="icon" label="Export members" options={memberReportOptions} onError={(exportError) => setError(getApiErrorMessage(exportError))} />
             <MobileIconButton
               icon={RefreshCw}
@@ -313,15 +356,45 @@ export default function AssociationMembersScreen() {
         }
       />
 
+      {selectionMode ? (
+        <MobileCard compact>
+          <MobileText variant="small" tone="secondary">
+            {formatNumber(selectedMemberIds.size)} member(s) selected
+          </MobileText>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <MobileButton
+              label="Activate"
+              icon={UserCheck}
+              size="sm"
+              disabled={selectedMemberIds.size === 0}
+              onPress={() => setBulkStatusTarget('ACTIVE')}
+            />
+            <MobileButton
+              label="Inactivate"
+              icon={UserX}
+              size="sm"
+              variant="danger"
+              disabled={selectedMemberIds.size === 0}
+              onPress={() => setBulkStatusTarget('INACTIVE')}
+            />
+          </View>
+        </MobileCard>
+      ) : null}
+
       {listItems.length ? (
         <MobileDataList
           items={listItems}
           onPressItem={(item) => {
+            if (selectionMode) {
+              toggleMemberSelection(item.id);
+              return;
+            }
             const member = visibleMembers.find((candidate) => candidate.id === item.id);
             if (member && detailRoute) {
               router.push({ pathname: '/work/route-preview', params: { routeId: detailRoute.id, memberId: member.id } } as never);
             }
           }}
+          selectedItemIds={selectionMode ? selectedMemberIds : undefined}
         />
       ) : (
         <MobileEmptyState
@@ -354,6 +427,17 @@ export default function AssociationMembersScreen() {
         options={sortOptions}
         onChange={setSortBy}
         onClose={() => setSortOpen(false)}
+      />
+
+      <MobileConfirmSheet
+        visible={Boolean(bulkStatusTarget)}
+        title="Update member statuses"
+        description={`Mark ${formatNumber(selectedMemberIds.size)} selected member(s) as ${bulkStatusTarget?.toLowerCase() || ''}?`}
+        confirmLabel={bulkStatusTarget === 'INACTIVE' ? 'Inactivate' : 'Activate'}
+        destructive={bulkStatusTarget === 'INACTIVE'}
+        loading={bulkUpdating}
+        onCancel={() => setBulkStatusTarget(null)}
+        onConfirm={() => void updateSelectedStatuses()}
       />
 
     </MobileScreen>

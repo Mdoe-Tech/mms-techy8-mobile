@@ -50,6 +50,7 @@ const vikobaPurposeOptions = [
   { label: 'Fines', value: 'FINE' },
   { label: 'Penalties', value: 'PENALTY' },
   { label: 'Loan repayment', value: 'LOAN_REPAYMENT' },
+  { label: 'Loan application fee', value: 'LOAN_APPLICATION_FEE' },
   { label: 'Wallet top-up', value: 'WALLET_TOP_UP' },
   { label: 'Registration fee', value: 'REGISTRATION_FEE' },
   { label: 'Subscription', value: 'SUBSCRIPTION' },
@@ -83,6 +84,7 @@ export default function MobileGenericPaymentScreen({ mode = 'association' }: Mob
     { label: 'Fines', value: 'FINE' },
     { label: 'Penalties', value: 'PENALTY' },
     { label: 'Loan repayment', value: 'LOAN_REPAYMENT' },
+    { label: 'Loan application fee', value: 'LOAN_APPLICATION_FEE' },
     { label: 'Wallet top-up', value: 'WALLET_TOP_UP' },
     { label: 'Registration fee', value: 'REGISTRATION_FEE' },
     { label: 'Subscription', value: 'SUBSCRIPTION' },
@@ -484,7 +486,7 @@ function firstParam(value: string | string[] | undefined) {
 function parsePurpose(value: string | undefined, walletTopUp: boolean, isSaccos: boolean): PaymentPurpose {
   if (walletTopUp) return 'WALLET_TOP_UP';
   const allowed = isSaccos
-    ? ['SAVINGS', 'SHARE_PURCHASE', 'FINE', 'PENALTY', 'LOAN_REPAYMENT', 'WALLET_TOP_UP', 'REGISTRATION_FEE', 'SUBSCRIPTION']
+    ? ['SAVINGS', 'SHARE_PURCHASE', 'FINE', 'PENALTY', 'LOAN_REPAYMENT', 'LOAN_APPLICATION_FEE', 'WALLET_TOP_UP', 'REGISTRATION_FEE', 'SUBSCRIPTION']
     : vikobaPurposeOptions.map((option) => option.value);
   return allowed.includes(value || '') ? (value as PaymentPurpose) : isSaccos ? 'SAVINGS' : 'SHARE_PURCHASE';
 }

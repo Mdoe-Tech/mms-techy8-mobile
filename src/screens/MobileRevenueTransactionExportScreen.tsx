@@ -40,6 +40,7 @@ const paymentTypes = [
   { label: 'Penalty', value: 'PENALTY' },
   { label: 'Membership fee', value: 'MEMBERSHIP_FEE' },
   { label: 'Loan repayment', value: 'LOAN_REPAYMENT' },
+  { label: 'Loan application fee', value: 'LOAN_APPLICATION_FEE' },
   { label: 'Other', value: 'OTHER' },
 ];
 

@@ -53,6 +53,7 @@ const acceptedPaymentTypes = [
   'SOCIAL_CONTRIBUTION',
   'PENALTY',
   'LOAN_REPAYMENT',
+  'LOAN_APPLICATION_FEE',
 ];
 
 export default function MobileRevenueTransactionImportScreen() {

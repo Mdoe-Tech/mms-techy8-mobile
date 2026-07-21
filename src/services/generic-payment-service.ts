@@ -8,6 +8,7 @@ export type PaymentPurpose =
   | 'FINE'
   | 'PENALTY'
   | 'LOAN_REPAYMENT'
+  | 'LOAN_APPLICATION_FEE'
   | 'WALLET_TOP_UP'
   | 'SUBSCRIPTION'
   | 'REGISTRATION_FEE';

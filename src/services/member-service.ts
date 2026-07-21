@@ -689,6 +689,25 @@ export async function getAllAssociationMembers(associationId: string, options: O
   };
 }
 
+export type BulkMemberStatusUpdateResult = {
+  requested: number;
+  updated: number;
+  unchanged: number;
+  status: 'ACTIVE' | 'INACTIVE';
+  updatedMemberIds: string[];
+};
+
+export function updateMultipleMemberStatuses(
+  associationId: string,
+  memberIds: string[],
+  status: 'ACTIVE' | 'INACTIVE',
+) {
+  return apiRequest<BulkMemberStatusUpdateResult>('/members/bulk-status', {
+    method: 'PATCH',
+    body: { associationId, memberIds, status },
+  });
+}
+
 function buildMemberRegistrationFormData(
   associationId: string,
   payload: MemberRegistrationPayload,
